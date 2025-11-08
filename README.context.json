@@ -1,0 +1,198 @@
+{
+  "projectName": "SimonAI - MVP Backend",
+  "description": "Backend serverless para la plataforma SimonAI, un sistema de monitoreo apícola con alertas, reportes y gestión de colmenas basado en sensores IoT.",
+  "architecture": {
+    "pattern": "Clean Architecture / Hexagonal",
+    "runtime": "Cloudflare Workers + Bun",
+    "language": "TypeScript",
+    "framework": "Express 5",
+    "orm": "Drizzle ORM",
+    "database": "Supabase (PostgreSQL)",
+    "auth": "Supabase Auth",
+    "cron": "Cloudflare Workers (alertas y pérdida de conexión)"
+  },
+  "phases": {
+    "prototype": {
+      "goal": "Validar la viabilidad técnica de la captura de datos IoT y su visualización.",
+      "features": [
+        "Registro de usuario, apiario y colmena",
+        "Visualización de datos diarios (C°, h%, Kg, Hz)",
+        "Hasta 1 apiario y 100 colmenas por usuario"
+      ]
+    },
+    "mvp": {
+      "goal": "Completar validación técnica y comercial del producto SimonAI.",
+      "features": [
+        "Sistema de alertas (crítica, grave, estable)",
+        "Notificaciones internas y externas (WhatsApp)",
+        "Reportes CSV semanales",
+        "CRON jobs para alertas y detección de desconexión"
+      ]
+    }
+  },
+    "database": {
+    "engine": "PostgreSQL",
+    "schema": {
+      "alerta": [
+        { "id": "integer", "notNull": true, "default": "nextval('alerta_id_seq'::regclass)" },
+        { "id_colmena": "integer", "notNull": true },
+        { "id_tipo_alerta": "integer", "notNull": true },
+        { "descripcion": "text" },
+        { "temperatura_c": "numeric" },
+        { "humedad_h": "numeric" },
+        { "peso_kg": "numeric" },
+        { "presion_hpa": "numeric" },
+        { "sonido_hz": "numeric" },
+        { "fecha_evento": "timestamp", "default": "CURRENT_TIMESTAMP" },
+        { "estado": "varchar", "default": "'pendiente'" },
+        { "id_usuario_atencion": "integer" },
+        { "fecha_creacion": "timestamp" },
+        { "nota_resolucion": "text" },
+        { "prioridad": "varchar", "default": "'media'" },
+        { "origen_alerta": "varchar", "default": "'sistema'" },
+        { "atendida_por": "integer" },
+        { "comentario_atencion": "text" }
+      ],
+      "apiario": [
+        { "id": "integer", "notNull": true, "default": "nextval('apiario_id_seq'::regclass)" },
+        { "nombre": "text", "notNull": true },
+        { "id_empresa": "integer", "notNull": true },
+        { "limite_colmenas": "integer", "default": 100 }
+      ],
+      "colmena": [
+        { "id": "integer", "notNull": true, "default": "nextval('colmena_id_seq'::regclass)" },
+        { "nombre_colmena": "text", "notNull": true },
+        { "id_apicultor": "integer" },
+        { "id_apiario_actual": "integer" },
+        { "id_dispositivo": "integer" },
+        { "fecha_instalacion": "date" }
+      ],
+      "colmena_a_apiario": [
+        { "id": "integer", "notNull": true, "default": "nextval('colmena_a_apiario_id_seq'::regclass)" },
+        { "id_colmena": "integer", "notNull": true },
+        { "id_apiario_destino": "integer", "notNull": true },
+        { "fecha_cambio": "date", "notNull": true },
+        { "observaciones": "text" },
+        { "id_apiario_origen": "integer" },
+        { "motivo_cambio": "text" },
+        { "responsable_cambio": "integer" }
+      ],
+      "configuracion_reporte": [
+        { "id": "integer", "notNull": true, "default": "nextval('configuracion_reporte_id_seq'::regclass)" },
+        { "id_empresa": "integer", "notNull": true },
+        { "tipo_reporte": "varchar", "notNull": true },
+        { "descripcion": "text" },
+        { "incluir_estado_colmenas": "boolean", "default": true },
+        { "incluir_produccion": "boolean", "default": true },
+        { "incluir_alertas": "boolean", "default": true },
+        { "incluir_tendencias": "boolean", "default": false },
+        { "incluir_comparativas": "boolean", "default": false },
+        { "activo": "boolean", "default": true },
+        { "fecha_creacion": "timestamp", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "dispositivo_simonia": [
+        { "id": "integer", "notNull": true, "default": "nextval('dispositivo_simonia_id_seq'::regclass)" },
+        { "codigo_unico": "varchar", "notNull": true },
+        { "modelo": "varchar" },
+        { "firmware_version": "varchar" },
+        { "fecha_registro": "timestamp", "default": "CURRENT_TIMESTAMP" },
+        { "estado": "varchar", "default": "'activo'" }
+      ],
+      "empresa": [
+        { "id": "integer", "notNull": true, "default": "nextval('empresa_id_seq'::regclass)" },
+        { "nombre": "text", "notNull": true },
+        { "fecha_registro": "timestamp", "default": "CURRENT_TIMESTAMP" },
+        { "pais": "varchar" },
+        { "direccion": "text" },
+        { "numero_telefono": "integer" },
+        { "correo_contacto": "text" },
+        { "estado_empresa": "varchar", "default": "'activa'" }
+      ],
+      "usuario": [
+        { "id": "integer", "notNull": true, "default": "nextval('usuario_id_seq'::regclass)" },
+        { "nombre": "text", "notNull": true },
+        { "correo": "text", "notNull": true },
+        { "tipo_usuario": "varchar", "notNull": true },
+        { "id_empresa": "integer" },
+        { "fecha_nacimiento": "date" },
+        { "direccion": "text" },
+        { "ciudad": "text" },
+        { "region": "text" },
+        { "pais": "text", "default": "'Chile'" },
+        { "rut": "varchar" },
+        { "telefono": "varchar" }
+      ],
+      "usuario_rol": [
+        { "id": "integer", "notNull": true, "default": "nextval('usuario_rol_id_seq'::regclass)" },
+        { "id_usuario": "integer", "notNull": true },
+        { "id_rol": "integer", "notNull": true },
+        { "fecha_asignacion": "timestamp", "default": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    "relationships": [
+      "alerta.id_colmena -> colmena.id",
+      "alerta.id_tipo_alerta -> tipo_alerta.id",
+      "alerta.atendida_por -> usuario.id",
+      "apiario.id_empresa -> empresa.id",
+      "colmena.id_apiario_actual -> apiario.id",
+      "colmena.id_dispositivo -> dispositivo_simonia.id",
+      "colmena_a_apiario.id_colmena -> colmena.id",
+      "colmena_a_apiario.id_apiario_destino -> apiario.id",
+      "colmena_a_apiario.responsable_cambio -> usuario.id",
+      "configuracion_reporte.id_empresa -> empresa.id",
+      "usuario.id_empresa -> empresa.id",
+      "usuario_rol.id_usuario -> usuario.id",
+      "usuario_rol.id_rol -> rol.id"
+    ]
+  },
+  "folders": {
+    "src/app": "Capa de aplicación (controladores, middlewares, rutas, DTOs).",
+    "src/application/use-case": "Casos de uso — lógica de orquestación del dominio.",
+    "src/config": "Configuración global (Express, Cloudflare, variables de entorno).",
+    "src/domain/entities": "Entidades puras del dominio (User, Apiary, Hive, Measurement).",
+    "src/domain/repositories": "Interfaces abstractas para persistencia.",
+    "src/domain/services": "Reglas de negocio puras sin dependencias externas.",
+    "src/infrastructure/auth": "Adaptador temporal de autenticación (Supabase Auth).",
+    "src/infrastructure/database": "Conexión Supabase (PostgreSQL) y esquemas Drizzle ORM.",
+    "src/infrastructure/logger": "Sistema de logging y monitoreo.",
+    "src/infrastructure/repositories": "Implementaciones concretas de los repositorios.",
+    "src/infrastructure/workers": "Cloudflare Workers y CRONs (alertas, limpieza, etc.).",
+    "src/utils": "Helpers, manejo de errores y respuestas estándar.",
+    "src/index.ts": "Punto de entrada principal de la aplicación."
+  },
+  "dependencies": {
+    "installed": [
+      "@types/express",
+      "@types/bun",
+      "dotenv",
+      "express",
+      "typescript"
+    ],
+    "future": [
+      "drizzle-orm",
+      "@libsql/client",
+      "jsonwebtoken",
+      "bcryptjs",
+      "zod",
+      "csv-writer",
+      "upstash-redis",
+      "pino",
+      "hono"
+    ]
+  },
+  "env": [
+    "SUPABASE_URL",
+    "SUPABASE_TOKEN",
+    "JWT_SECRET",
+    "UPSTASH_REDIS_URL",
+    "UPSTASH_REDIS_TOKEN"
+  ],
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "start": "wrangler dev",
+    "deploy": "wrangler publish",
+    "migrate": "drizzle-kit push"
+  },
+  "goalForAI": "Proveer a la IA en VSCode el contexto completo de la arquitectura, dependencias, estructura y flujo del proyecto SimonAI para generar código coherente y alineado con el patrón Clean Architecture y el stack Bun + Cloudflare + Supabase(PostgreSQL) + Drizzle."
+}
