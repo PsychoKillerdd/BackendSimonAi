@@ -48,6 +48,52 @@ export async function getAllEmpresas() {
   return data;
 }
 
+export async function getEmpresaById(empresaId: string) {
+  const { data, error } = await supabase
+    .from('empresa')
+    .select('*')
+    .eq('id', empresaId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export type PaginationOptions = {
+  page?: string;
+  limit?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+};
+
+export async function getEmpresasPaginated(options: PaginationOptions) {
+  const page = parseInt(options.page || '1');
+  const limit = parseInt(options.limit || '10');
+  const sortBy = options.sortBy || 'id';
+  const sortOrder = options.sortOrder || 'asc';
+
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error, count } = await supabase
+    .from('empresa')
+    .select('*', { count: 'exact' })
+    .order(sortBy, { ascending: sortOrder === 'asc' })
+    .range(from, to);
+
+  if (error) throw error;
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      totalPages: Math.ceil((count || 0) / limit)
+    }
+  };
+}
+
 /**
  * Obtiene empresas con paginación
  * @param params - Parámetros de paginación (page, limit, sortBy, sortOrder)
