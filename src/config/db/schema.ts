@@ -19,7 +19,7 @@ export const usuario = pgTable('usuario', {
   id_empresa: uuid('id_empresa').references(() => empresa.id),
   nombre: text('nombre').notNull(),
   correo: text('correo').notNull().unique(),
-  contraseña: text('contraseña').notNull(),
+  password: text('password').notNull(),
   tipo_usuario: varchar('tipo_usuario'),
   fecha_nacimiento: date('fecha_nacimiento'),
   direccion: text('direccion'),
@@ -58,6 +58,7 @@ export const apiario = pgTable('apiario', {
 // 🧱 dispositivo_simonia
 export const dispositivo_simonia = pgTable('dispositivo_simonia', {
   id: uuid('id').defaultRandom().primaryKey(),
+  id_propietario: uuid('id_propietario').references(() => empresa.id),
   codigo_unico: varchar('codigo_unico').notNull().unique(),
   modelo: varchar('modelo'),
   firmware_version: varchar('firmware_version'),

@@ -4,10 +4,7 @@ import {
   getAllEmpresasHandler,
   getEmpresaByIdHandler,
   createAdminHandler,
-  createSuscripcionHandler,
-  createUsuarioHandler,
-  initEmpresaHandler,
-  onboardEmpresaHandler
+  createUsuarioHandler
 } from '../controllers/empresaController';
 
 const router = express.Router();
@@ -21,18 +18,15 @@ router.get('/empresas/:empresaId', getEmpresaByIdHandler);
 // GET /api/empresas - con paginación
 router.get('/empresas', getAllEmpresasHandler);
 
-
 // POST /api/empresas/:empresaId/create-admin - crear admin a partir de la empresa (correo de empresa por defecto)
-router.post('/empresas/:empresaId/create-admin', createAdminHandler);// POST /api/empresas/:empresaId/suscripcion
-router.post('/empresas/:empresaId/suscripcion', createSuscripcionHandler);
+router.post('/empresas/:empresaId/create-admin', createAdminHandler);
 
 // POST /api/empresas/:empresaId/usuarios
 router.post('/empresas/:empresaId/usuarios', createUsuarioHandler);
 
-// POST /api/empresas/:empresaId/init - inicializar uso_empresa y configuracion_reporte
-router.post('/empresas/:empresaId/init', initEmpresaHandler);
-
-// POST /api/empresas/onboard - endpoint compuesto (no atómico)
-router.post('/empresas/onboard', onboardEmpresaHandler);
+// Nota: Los siguientes endpoints están deshabilitados porque requieren tablas que no están en el schema
+// - POST /api/empresas/:empresaId/suscripcion (requiere suscripcion_empresa)
+// - POST /api/empresas/:empresaId/init (requiere uso_empresa, configuracion_reporte)
+// - POST /api/empresas/onboard (requiere las tablas anteriores)
 
 export default router;

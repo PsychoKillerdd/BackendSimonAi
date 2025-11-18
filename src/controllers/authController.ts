@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
 import authService from '../services/authService';
-import supabase from '../config/db/supbase';
 import { createUsuarioWithRole } from '../services/empresaService';
 
 export async function loginHandler(req: Request, res: Response) {
@@ -10,13 +9,12 @@ export async function loginHandler(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'correo y password son obligatorios' });
     }
 
-    const { data: usuario, error } = await supabase.from('usuario').select('*').ilike('correo', correo).maybeSingle();
-    if (error) throw error;
-    if (!usuario || !usuario.password_hash) {
+    const usuario = await authService.findUsuarioByCorreo(correo);
+    if (!usuario || !usuario.password) {
       return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
     }
 
-    const valid = await authService.verifyPassword(password, usuario.password_hash);
+    const valid = await authService.verifyPassword(password, usuario.password);
     if (!valid) {
       return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
     }

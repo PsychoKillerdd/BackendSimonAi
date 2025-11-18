@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
-import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createSuscripcion, createUsuarioWithRole, initUsoEmpresa, initConfiguracionReporte, onboardEmpresa } from '../services/empresaService';
+import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createUsuarioWithRole } from '../services/empresaService';
 import PLANS from '../config/plans';
-import supabase from '../config/db/supbase';
 
 export async function createEmpresaHandler(req: Request, res: Response) {
   try {
@@ -79,8 +78,7 @@ export async function createAdminHandler(req: Request, res: Response) {
     if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
 
     // obtener empresa para obtener correo de contacto si no se provee
-    const { data: empresaData, error: empresaErr } = await supabase.from('empresa').select('*').eq('id', empresaId).maybeSingle();
-    if (empresaErr) throw empresaErr;
+    const empresaData = await getEmpresaById(empresaId);
 
     const body = req.body || {};
     const correo = body.correo || empresaData?.correo_contacto;
@@ -103,34 +101,6 @@ export async function createAdminHandler(req: Request, res: Response) {
   }
 }
 
-export async function createSuscripcionHandler(req: Request, res: Response) {
-  try {
-    const empresaId = req.params.empresaId;
-    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
-
-    // Apply plan defaults; if no plan provided, default to 'free'
-    const payload = { ...req.body };
-    if (!payload.plan) payload.plan = 'free';
-    if (payload.plan && typeof payload.plan === 'string') {
-      const planKey = payload.plan.toLowerCase();
-      const plan = (PLANS as any)[planKey];
-      if (plan) {
-        // Only set fields that are undefined in payload so client can override
-        if (typeof payload.max_colmenas === 'undefined') payload.max_colmenas = plan.max_colmenas;
-        if (typeof payload.max_apiarios === 'undefined') payload.max_apiarios = plan.max_apiarios;
-        if (typeof payload.max_usuarios === 'undefined') payload.max_usuarios = plan.max_usuarios;
-        if (typeof payload.precio_mensual === 'undefined') payload.precio_mensual = plan.precio_mensual;
-      }
-    }
-
-    const suscripcion = await createSuscripcion(empresaId as any, payload);
-    return res.status(201).json({ success: true, data: suscripcion });
-  } catch (error: any) {
-    console.error('Error al crear suscripción:', error);
-    return res.status(500).json({ success: false, message: error?.message || 'Error interno al crear suscripción' });
-  }
-}
-
 export async function createUsuarioHandler(req: Request, res: Response) {
   try {
     const empresaId = req.params.empresaId;
@@ -141,7 +111,7 @@ export async function createUsuarioHandler(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'nombre, correo y tipo_usuario son obligatorios' });
     }
 
-    const result = await createUsuarioWithRole(empresaId as any, payload);
+    const result = await createUsuarioWithRole(empresaId, payload);
     return res.status(201).json({ success: true, data: result });
   } catch (error: any) {
     console.error('Error al crear usuario:', error);
@@ -149,29 +119,19 @@ export async function createUsuarioHandler(req: Request, res: Response) {
   }
 }
 
-export async function initEmpresaHandler(req: Request, res: Response) {
-  try {
-    const empresaId = req.params.empresaId;
-    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
+// Nota: Los siguientes handlers requieren tablas que no están en el schema actual
+// Se comentan hasta agregar suscripcion_empresa, uso_empresa, configuracion_reporte al schema
 
-    const uso = await initUsoEmpresa(empresaId as any);
-    const config = await initConfiguracionReporte(empresaId as any);
-    return res.status(201).json({ success: true, data: { uso, config } });
-  } catch (error: any) {
-    console.error('Error al inicializar empresa:', error);
-    return res.status(500).json({ success: false, message: error?.message || 'Error interno al inicializar empresa' });
-  }
+/*
+export async function createSuscripcionHandler(req: Request, res: Response) {
+  // Implementar cuando se agregue la tabla suscripcion_empresa
+}
+
+export async function initEmpresaHandler(req: Request, res: Response) {
+  // Implementar cuando se agreguen uso_empresa y configuracion_reporte
 }
 
 export async function onboardEmpresaHandler(req: Request, res: Response) {
-  try {
-    const { empresaId, suscripcion, admin } = req.body;
-    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
-
-    const result = await onboardEmpresa(empresaId, { suscripcion, admin });
-    return res.status(201).json({ success: true, data: result });
-  } catch (error: any) {
-    console.error('Error en onboard compuesto:', error);
-    return res.status(500).json({ success: false, message: error?.message || 'Error interno en onboarding' });
-  }
+  // Implementar cuando estén disponibles todos los servicios necesarios
 }
+*/

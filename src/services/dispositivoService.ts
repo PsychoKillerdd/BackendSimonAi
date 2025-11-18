@@ -1,7 +1,10 @@
-import supabase from '../config/db/supbase';
+import { db } from '../config/db';
+import { dispositivo_simonia } from '../config/db/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export type DispositivoInput = {
   codigo_unico: string;
+  id_propietario: string;
   modelo?: string;
   firmware_version?: string;
   estado?: string;
@@ -10,6 +13,7 @@ export type DispositivoInput = {
 export async function createDispositivo(payload: DispositivoInput) {
   const dispositivoPayload: any = {
     codigo_unico: payload.codigo_unico,
+    id_propietario: payload.id_propietario,
   };
 
   if (payload.modelo) {
@@ -24,56 +28,37 @@ export async function createDispositivo(payload: DispositivoInput) {
     dispositivoPayload.estado = payload.estado;
   }
 
-  const { data, error } = await supabase
-    .from('dispositivo_simonia')
-    .insert([dispositivoPayload])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const result = await db.insert(dispositivo_simonia).values(dispositivoPayload).returning();
+  return result[0];
 }
 
 export async function getDispositivoById(dispositivoId: string) {
-  const { data, error } = await supabase
-    .from('dispositivo_simonia')
-    .select('*')
-    .eq('id', dispositivoId)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
+  const result = await db.select().from(dispositivo_simonia).where(eq(dispositivo_simonia.id, dispositivoId));
+  return result[0] || null;
 }
 
 export async function getDispositivoByCodigo(codigoUnico: string) {
-  const { data, error } = await supabase
-    .from('dispositivo_simonia')
-    .select('*')
-    .eq('codigo_unico', codigoUnico)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
+  const result = await db.select().from(dispositivo_simonia).where(eq(dispositivo_simonia.codigo_unico, codigoUnico));
+  return result[0] || null;
 }
 
 export async function getAllDispositivos() {
-  const { data, error } = await supabase
-    .from('dispositivo_simonia')
-    .select('*')
-    .order('fecha_registro', { ascending: false });
+  return await db.select().from(dispositivo_simonia).orderBy(desc(dispositivo_simonia.fecha_registro));
+}
 
-  if (error) throw error;
-  return data;
+export async function getDispositivosByEmpresa(empresaId: string) {
+  return await db
+    .select()
+    .from(dispositivo_simonia)
+    .where(eq(dispositivo_simonia.id_propietario, empresaId))
+    .orderBy(desc(dispositivo_simonia.fecha_registro));
 }
 
 export async function updateDispositivoEstado(dispositivoId: string, estado: string) {
-  const { data, error } = await supabase
-    .from('dispositivo_simonia')
-    .update({ estado })
-    .eq('id', dispositivoId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const result = await db
+    .update(dispositivo_simonia)
+    .set({ estado })
+    .where(eq(dispositivo_simonia.id, dispositivoId))
+    .returning();
+  return result[0];
 }

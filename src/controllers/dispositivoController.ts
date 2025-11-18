@@ -4,6 +4,7 @@ import {
   getDispositivoById,
   getDispositivoByCodigo,
   getAllDispositivos,
+  getDispositivosByEmpresa,
   updateDispositivoEstado,
   type DispositivoInput,
 } from '../services/dispositivoService';
@@ -20,8 +21,11 @@ export async function createDispositivoHandler(req: AuthRequest, res: Response) 
       });
     }
 
+    const id_propietario = req.user!.id_empresa;
+
     const payload: DispositivoInput = {
       codigo_unico,
+      id_propietario,
       modelo,
       firmware_version,
       estado,
@@ -118,6 +122,24 @@ export async function getAllDispositivosHandler(req: Request, res: Response) {
     });
   } catch (error: any) {
     console.error('Error obteniendo dispositivos:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error al obtener dispositivos',
+    });
+  }
+}
+
+export async function getDispositivosByEmpresaHandler(req: AuthRequest, res: Response) {
+  try {
+    const id_empresa = req.user!.id_empresa;
+    const dispositivos = await getDispositivosByEmpresa(id_empresa);
+
+    res.status(200).json({
+      success: true,
+      data: dispositivos,
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo dispositivos de la empresa:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Error al obtener dispositivos',

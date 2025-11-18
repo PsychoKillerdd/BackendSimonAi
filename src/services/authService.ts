@@ -1,11 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import supabase from '../config/db/supbase';
+import { db } from '../config/db';
+import { usuario } from '../config/db/schema';
+import { ilike } from 'drizzle-orm';
 
 const JWT_SECRET = (process.env.JWT_SECRET || 'please-change-me') as string;
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as string;
-
-
 
 export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -25,9 +25,8 @@ export function verifyJwt(token: string) {
 }
 
 export async function findUsuarioByCorreo(correo: string) {
-  const { data, error } = await supabase.from('usuario').select('*').ilike('correo', correo).maybeSingle();
-  if (error) throw error;
-  return data;
+  const result = await db.select().from(usuario).where(ilike(usuario.correo, correo));
+  return result[0] || null;
 }
 
 export default {

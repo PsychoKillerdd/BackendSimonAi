@@ -4,6 +4,7 @@ import {
   getDispositivoByIdHandler,
   getDispositivoByCodigoHandler,
   getAllDispositivosHandler,
+  getDispositivosByEmpresaHandler,
   updateDispositivoEstadoHandler,
 } from '../controllers/dispositivoController';
 import { authenticateToken, requireAdmin } from '../middlewares/authMiddleware';
@@ -15,6 +16,9 @@ router.post('/dispositivos', authenticateToken, requireAdmin, createDispositivoH
 
 // Obtener todos los dispositivos
 router.get('/dispositivos', authenticateToken, getAllDispositivosHandler);
+
+// Obtener dispositivos de mi empresa
+router.get('/dispositivos/empresa/mis-dispositivos', authenticateToken, getDispositivosByEmpresaHandler);
 
 // Obtener dispositivo por ID
 router.get('/dispositivos/:dispositivoId', authenticateToken, getDispositivoByIdHandler);
