@@ -14,8 +14,38 @@ dotenv.config();
 const startTime = Date.now();
 
 const app = express();
-app.use(cors());
+
+// CORS configurado para producción
+app.use(cors({
+	origin: '*', // En producción, especifica dominios permitidos
+	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+	allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
+
+// Logging de requests (solo en desarrollo)
+if (process.env.NODE_ENV !== 'production') {
+	app.use((req, _res, next) => {
+		console.log(`${req.method} ${req.path}`);
+		next();
+	});
+}// Root endpoint
+app.get('/', (_req, res) => {
+	res.json({
+		message: 'Simon Backend MVP API',
+		version: '1.0.0',
+		status: 'running',
+		endpoints: {
+			health: '/health',
+			empresas: '/api/empresas',
+			auth: '/auth/login',
+			apiarios: '/api/apiarios',
+			dispositivos: '/api/dispositivos',
+			lecturas: '/api/lecturas/sensor'
+		}
+	});
+});
 
 // Rutas
 app.use('/api', empresaRouter);
@@ -56,6 +86,19 @@ app.get('/health', async (_req, res) => {
 });
 
 const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, () => {
-	console.log(`Server listening on port ${PORT}`);
+const HOST = '0.0.0.0'; // Necesario para Render y otros servicios de hosting
+
+app.listen(PORT, HOST, () => {
+	console.log(`✅ Server listening on ${HOST}:${PORT}`);
+	console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+	console.log(`🌍 Available routes:`);
+	console.log(`   POST   /api/empresas`);
+	console.log(`   GET    /api/empresas`);
+	console.log(`   POST   /auth/login`);
+	console.log(`   POST   /auth/register`);
+	console.log(`   POST   /api/apiarios`);
+	console.log(`   POST   /api/colmenas`);
+	console.log(`   POST   /api/dispositivos`);
+	console.log(`   POST   /api/lecturas/sensor`);
+	console.log(`   GET    /health`);
 });
