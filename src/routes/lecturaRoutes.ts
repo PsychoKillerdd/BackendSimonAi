@@ -27,7 +27,7 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
       sonido_hz: 'number - Frecuencia de sonido en Hertz',
       presion_hpa: 'number - Presión atmosférica en hectopascales'
     },
-    ejemplo_curl: `curl -X POST https://tu-app.onrender.com/api/lecturas/sensor \\
+    ejemplo_curl: `curl -X POST https://simon-backend-mvp-1.onrender.com/api/lecturas/sensor \\
   -H "Content-Type: application/json" \\
   -d '{
     "codigo_dispositivo": "SIMON-001",
