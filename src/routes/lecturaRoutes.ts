@@ -30,7 +30,7 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
     ejemplo_curl: `curl -X POST https://simon-backend-mvp-1.onrender.com/api/lecturas/sensor \\
   -H "Content-Type: application/json" \\
   -d '{
-    "codigo_dispositivo": "SIMON-001",
+    "codigo_dispositivo": "SIM-002",
     "temperatura_c": 25.5,
     "humedad_h": 65.2,
     "peso_kg": 45.3,
@@ -38,7 +38,7 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
     "presion_hpa": 1013.2
   }'`,
     ejemplo_body: {
-      codigo_dispositivo: 'SIMON-001',
+      codigo_dispositivo: 'SIM-002',
       temperatura_c: 25.5,
       humedad_h: 65.2,
       peso_kg: 45.3,
