@@ -18,8 +18,6 @@ const app = express();
 // CORS configurado para producción
 app.use(cors({
 	origin: '*', // En producción, especifica dominios permitidos
-	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-	allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -91,14 +89,4 @@ const HOST = '0.0.0.0'; // Necesario para Render y otros servicios de hosting
 app.listen(PORT, HOST, () => {
 	console.log(`✅ Server listening on ${HOST}:${PORT}`);
 	console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-	console.log(`🌍 Available routes:`);
-	console.log(`   POST   /api/empresas`);
-	console.log(`   GET    /api/empresas`);
-	console.log(`   POST   /auth/login`);
-	console.log(`   POST   /auth/register`);
-	console.log(`   POST   /api/apiarios`);
-	console.log(`   POST   /api/colmenas`);
-	console.log(`   POST   /api/dispositivos`);
-	console.log(`   POST   /api/lecturas/sensor`);
-	console.log(`   GET    /health`);
 });
