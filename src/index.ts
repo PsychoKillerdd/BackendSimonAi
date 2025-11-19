@@ -8,6 +8,7 @@ import dispositivoRouter from './routes/dispositivoRoutes';
 import lecturaRouter from './routes/lecturaRoutes';
 import { db } from './config/db';
 import { sql } from 'drizzle-orm';
+import { startKeepAlive } from './utils/keepAlive';
 
 dotenv.config();
 
@@ -89,4 +90,9 @@ const HOST = '0.0.0.0'; // Necesario para Render y otros servicios de hosting
 app.listen(PORT, HOST, () => {
 	console.log(`✅ Server listening on ${HOST}:${PORT}`);
 	console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+	
+	// Iniciar keep-alive solo en producción (Render)
+	if (process.env.RENDER_EXTERNAL_URL) {
+		startKeepAlive(PORT);
+	}
 });
