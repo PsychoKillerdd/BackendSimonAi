@@ -38,6 +38,20 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
 
     const resultado = await createLecturaSensorByCodigo(payload);
 
+    // Log para consola/Render
+    const fechaRegistro = resultado.lectura?.fecha_registro;
+    const fechaChile = fechaRegistro 
+      ? new Date(fechaRegistro).toLocaleString('es-CL', {
+          timeZone: 'America/Santiago',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        })
+      : 'N/A';
+
+    console.log(`📊 LECTURA REGISTRADA | Dispositivo: ${resultado.dispositivo.codigo_unico} | Colmena: ${resultado.colmena.nombre_colmena} | Hora Chile: ${fechaChile}`);
+
     res.status(201).json({ success: true, data: resultado });
   } catch (error: any) {
     console.error('Error creando lectura sensor:', error);
