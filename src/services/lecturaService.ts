@@ -1,6 +1,6 @@
 import { db } from '../config/db';
-import { lectura_sensor, dispositivo_simonia, colmena } from '../config/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { lectura_sensor, historial_lectura_sensor, dispositivo_simonia, colmena } from '../config/db/schema';
+import { eq, desc, gte, sql } from 'drizzle-orm';
 
 export type LecturaInput = {
   codigo_dispositivo: string; // codigo_unico del dispositivo físico
@@ -49,9 +49,22 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
   if (payload.sonido_hz !== undefined) insertValues.sonido_hz = payload.sonido_hz;
   if (payload.presion_hpa !== undefined) insertValues.presion_hpa = payload.presion_hpa;
 
+  // 1. Insertar en lectura_sensor (tabla principal)
   const result = await db.insert(lectura_sensor).values(insertValues).returning();
+  const lecturaCreada = result[0];
+
+  // 2. Guardar en historial para gráficos
+  await db.insert(historial_lectura_sensor).values({
+    id_lectura: lecturaCreada.id,
+    temperatura_c: insertValues.temperatura_c,
+    humedad_h: insertValues.humedad_h,
+    peso_kg: insertValues.peso_kg,
+    sonido_hz: insertValues.sonido_hz,
+    presion_hpa: insertValues.presion_hpa,
+  });
+
   return {
-    lectura: result[0],
+    lectura: lecturaCreada,
     colmena: { id: colmenaAsignada.id, nombre_colmena: colmenaAsignada.nombre_colmena },
     dispositivo: { id: dispositivo.id, codigo_unico: dispositivo.codigo_unico },
   };
@@ -92,4 +105,63 @@ export async function getUltimaLecturaByColmena(colmenaId: string) {
     .orderBy(desc(lectura_sensor.fecha_registro))
     .limit(1);
   return rows[0] || null;
+}
+
+// 📊 FUNCIONES PARA GRÁFICOS (usa historial_lectura_sensor)
+
+/**
+ * Obtiene historial de lecturas para gráficos
+ * @param colmenaId - ID de la colmena
+ * @param dias - Días hacia atrás (default: 7)
+ */
+export async function getHistorialParaGraficos(colmenaId: string, dias = 7) {
+  const fechaLimite = new Date();
+  fechaLimite.setDate(fechaLimite.getDate() - dias);
+  const fechaLimiteISO = fechaLimite.toISOString();
+
+  const historial = await db
+    .select({
+      temperatura_c: historial_lectura_sensor.temperatura_c,
+      humedad_h: historial_lectura_sensor.humedad_h,
+      peso_kg: historial_lectura_sensor.peso_kg,
+      sonido_hz: historial_lectura_sensor.sonido_hz,
+      presion_hpa: historial_lectura_sensor.presion_hpa,
+      fecha_registro: historial_lectura_sensor.fecha_registro,
+    })
+    .from(historial_lectura_sensor)
+    .innerJoin(lectura_sensor, eq(historial_lectura_sensor.id_lectura, lectura_sensor.id))
+    .where(
+      sql`${lectura_sensor.id_colmena} = ${colmenaId} AND ${historial_lectura_sensor.fecha_registro} >= ${fechaLimiteISO}`
+    )
+    .orderBy(historial_lectura_sensor.fecha_registro);
+
+  return historial;
+}
+
+/**
+ * Obtiene estadísticas agregadas para gráficos de resumen
+ */
+export async function getEstadisticasColmena(colmenaId: string, dias = 7) {
+  const fechaLimite = new Date();
+  fechaLimite.setDate(fechaLimite.getDate() - dias);
+  const fechaLimiteISO = fechaLimite.toISOString();
+
+  const stats = await db
+    .select({
+      temp_promedio: sql<number>`AVG(${historial_lectura_sensor.temperatura_c})`,
+      temp_max: sql<number>`MAX(${historial_lectura_sensor.temperatura_c})`,
+      temp_min: sql<number>`MIN(${historial_lectura_sensor.temperatura_c})`,
+      humedad_promedio: sql<number>`AVG(${historial_lectura_sensor.humedad_h})`,
+      peso_promedio: sql<number>`AVG(${historial_lectura_sensor.peso_kg})`,
+      peso_max: sql<number>`MAX(${historial_lectura_sensor.peso_kg})`,
+      peso_min: sql<number>`MIN(${historial_lectura_sensor.peso_kg})`,
+      total_lecturas: sql<number>`COUNT(*)`,
+    })
+    .from(historial_lectura_sensor)
+    .innerJoin(lectura_sensor, eq(historial_lectura_sensor.id_lectura, lectura_sensor.id))
+    .where(
+      sql`${lectura_sensor.id_colmena} = ${colmenaId} AND ${historial_lectura_sensor.fecha_registro} >= ${fechaLimiteISO}`
+    );
+
+  return stats[0];
 }

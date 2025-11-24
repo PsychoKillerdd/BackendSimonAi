@@ -5,28 +5,36 @@ import {
   getDispositivoByCodigoHandler,
   getAllDispositivosHandler,
   getDispositivosByEmpresaHandler,
+  getDispositivosSinAsignarHandler,
   updateDispositivoEstadoHandler,
+  asignarDispositivoHandler,
 } from '../controllers/dispositivoController';
 import { authenticateToken, requireAdmin } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// Crear dispositivo (solo admin)
-router.post('/dispositivos', authenticateToken, requireAdmin, createDispositivoHandler);
+// Crear dispositivo (sin autenticación - SimonIA crea inventario externo)
+router.post('/dispositivos', createDispositivoHandler);
 
-// Obtener todos los dispositivos
-router.get('/dispositivos', authenticateToken, getAllDispositivosHandler);
+// Obtener todos los dispositivos (sin autenticación)
+router.get('/dispositivos', getAllDispositivosHandler);
 
-// Obtener dispositivos de mi empresa
-router.get('/dispositivos/empresa/mis-dispositivos', authenticateToken, getDispositivosByEmpresaHandler);
+// Obtener dispositivos sin asignar - inventario SimonIA (sin autenticación)
+router.get('/dispositivos/sin-asignar/lista', getDispositivosSinAsignarHandler);
 
-// Obtener dispositivo por ID
-router.get('/dispositivos/:dispositivoId', authenticateToken, getDispositivoByIdHandler);
+// Obtener dispositivos de mi empresa (sin autenticación)
+router.get('/dispositivos/empresa/mis-dispositivos', getDispositivosByEmpresaHandler);
 
-// Obtener dispositivo por código único
-router.get('/dispositivos/codigo/:codigo', authenticateToken, getDispositivoByCodigoHandler);
+// Obtener dispositivo por ID (sin autenticación)
+router.get('/dispositivos/:dispositivoId', getDispositivoByIdHandler);
 
-// Actualizar estado del dispositivo (solo admin)
-router.patch('/dispositivos/:dispositivoId/estado', authenticateToken, requireAdmin, updateDispositivoEstadoHandler);
+// Obtener dispositivo por código único (sin autenticación)
+router.get('/dispositivos/codigo/:codigo', getDispositivoByCodigoHandler);
+
+// Actualizar estado del dispositivo (sin autenticación)
+router.patch('/dispositivos/:dispositivoId/estado', updateDispositivoEstadoHandler);
+
+// Asignar dispositivo a empresa (sin autenticación)
+router.patch('/dispositivos/:dispositivoId/asignar', asignarDispositivoHandler);
 
 export default router;

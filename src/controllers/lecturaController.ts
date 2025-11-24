@@ -4,6 +4,8 @@ import {
   getLecturasByColmena,
   getLecturasByCodigoDispositivo,
   getUltimaLecturaByColmena,
+  getHistorialParaGraficos,
+  getEstadisticasColmena,
   type LecturaInput,
 } from '../services/lecturaService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
@@ -104,5 +106,52 @@ export async function getUltimaLecturaColmenaHandler(req: AuthRequest, res: Resp
   } catch (error: any) {
     console.error('Error obteniendo última lectura:', error);
     res.status(500).json({ success: false, error: error.message || 'Error al obtener lectura' });
+  }
+}
+
+// 📊 CONTROLADORES PARA GRÁFICOS
+
+export async function getHistorialGraficosHandler(req: AuthRequest, res: Response) {
+  try {
+    const { colmenaId } = req.params;
+    const { dias } = req.query;
+
+    if (!colmenaId) {
+      return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    }
+
+    const historial = await getHistorialParaGraficos(colmenaId, Number(dias) || 7);
+    
+    res.status(200).json({ 
+      success: true, 
+      data: historial,
+      periodo_dias: Number(dias) || 7,
+      total_registros: historial.length
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo historial para gráficos:', error);
+    res.status(500).json({ success: false, error: error.message || 'Error al obtener historial' });
+  }
+}
+
+export async function getEstadisticasColmenaHandler(req: AuthRequest, res: Response) {
+  try {
+    const { colmenaId } = req.params;
+    const { dias } = req.query;
+
+    if (!colmenaId) {
+      return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    }
+
+    const estadisticas = await getEstadisticasColmena(colmenaId, Number(dias) || 7);
+    
+    res.status(200).json({ 
+      success: true, 
+      data: estadisticas,
+      periodo_dias: Number(dias) || 7
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({ success: false, error: error.message || 'Error al obtener estadísticas' });
   }
 }

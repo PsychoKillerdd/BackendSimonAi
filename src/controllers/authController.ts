@@ -42,49 +42,49 @@ export async function loginHandler(req: Request, res: Response) {
   }
 }
 
-export async function registerHandler(req: Request, res: Response) {
-  try {
-    const {
-      nombre,
-      correo,
-      password,
-      tipo_usuario,
-      id_empresa,
-      roleName,
-      fecha_nacimiento,
-      direccion,
-      ciudad,
-      region,
-      pais,
-      rut,
-      telefono
-    } = req.body;
+  export async function registerHandler(req: Request, res: Response) {
+    try {
+      const {
+        nombre,
+        correo,
+        password,
+        tipo_usuario,
+        id_empresa,
+        roleName,
+        fecha_nacimiento,
+        direccion,
+        ciudad,
+        region,
+        pais,
+        rut,
+        telefono
+      } = req.body;
 
-    if (!nombre || !correo || !password) {
-      return res.status(400).json({ success: false, message: 'nombre, correo y password son obligatorios' });
+      if (!nombre || !correo || !password) {
+        return res.status(400).json({ success: false, message: 'nombre, correo y password son obligatorios' });
+      }
+
+      const payload: any = {
+        nombre,
+        correo,
+        tipo_usuario: tipo_usuario ?? 'apicultor',
+        password,
+        // include optional fields explicitly (will be set to null by service if undefined)
+        fecha_nacimiento: typeof fecha_nacimiento !== 'undefined' ? fecha_nacimiento : undefined,
+        direccion: typeof direccion !== 'undefined' ? direccion : undefined,
+        ciudad: typeof ciudad !== 'undefined' ? ciudad : undefined,
+        region: typeof region !== 'undefined' ? region : undefined,
+        pais: typeof pais !== 'undefined' ? pais : undefined,
+        rut: typeof rut !== 'undefined' ? rut : undefined,
+        telefono: typeof telefono !== 'undefined' ? telefono : undefined,
+      };
+      if (roleName) payload.roleName = roleName;
+
+      // pass id_empresa as-is (DB may use UUIDs or integers depending on schema)
+      const result = await createUsuarioWithRole(id_empresa ?? null, payload);
+      return res.status(201).json({ success: true, data: result });
+    } catch (err: any) {
+      console.error('Register error', err);
+      return res.status(500).json({ success: false, message: err?.message || 'Error interno' });
     }
-
-    const payload: any = {
-      nombre,
-      correo,
-      tipo_usuario: tipo_usuario ?? 'apicultor',
-      password,
-      // include optional fields explicitly (will be set to null by service if undefined)
-      fecha_nacimiento: typeof fecha_nacimiento !== 'undefined' ? fecha_nacimiento : undefined,
-      direccion: typeof direccion !== 'undefined' ? direccion : undefined,
-      ciudad: typeof ciudad !== 'undefined' ? ciudad : undefined,
-      region: typeof region !== 'undefined' ? region : undefined,
-      pais: typeof pais !== 'undefined' ? pais : undefined,
-      rut: typeof rut !== 'undefined' ? rut : undefined,
-      telefono: typeof telefono !== 'undefined' ? telefono : undefined,
-    };
-    if (roleName) payload.roleName = roleName;
-
-    // pass id_empresa as-is (DB may use UUIDs or integers depending on schema)
-    const result = await createUsuarioWithRole(id_empresa ?? null, payload);
-    return res.status(201).json({ success: true, data: result });
-  } catch (err: any) {
-    console.error('Register error', err);
-    return res.status(500).json({ success: false, message: err?.message || 'Error interno' });
   }
-}

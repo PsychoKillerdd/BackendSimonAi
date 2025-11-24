@@ -4,6 +4,8 @@ import {
   getLecturasByColmenaHandler,
   getLecturasByDispositivoHandler,
   getUltimaLecturaColmenaHandler,
+  getHistorialGraficosHandler,
+  getEstadisticasColmenaHandler,
 } from '../controllers/lecturaController';
 import { authenticateToken } from '../middlewares/authMiddleware';
 
@@ -64,5 +66,9 @@ router.get('/lecturas/colmena/:colmenaId/ultima', authenticateToken, getUltimaLe
 
 // Lecturas por dispositivo (requiere auth)
 router.get('/lecturas/dispositivo/:codigo', authenticateToken, getLecturasByDispositivoHandler);
+
+// 📊 ENDPOINTS PARA GRÁFICOS (requieren auth)
+router.get('/lecturas/colmena/:colmenaId/graficos', authenticateToken, getHistorialGraficosHandler);
+router.get('/lecturas/colmena/:colmenaId/estadisticas', authenticateToken, getEstadisticasColmenaHandler);
 
 export default router;

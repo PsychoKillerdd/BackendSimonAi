@@ -4,7 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 
 export type DispositivoInput = {
   codigo_unico: string;
-  id_propietario: string;
+  id_propietario: string | null; // null = inventario SimonIA, string = asignado a empresa
   modelo?: string;
   firmware_version?: string;
   estado?: string;
@@ -61,4 +61,22 @@ export async function updateDispositivoEstado(dispositivoId: string, estado: str
     .where(eq(dispositivo_simonia.id, dispositivoId))
     .returning();
   return result[0];
+}
+
+export async function asignarDispositivoAEmpresa(dispositivoId: string, empresaId: string) {
+  const result = await db
+    .update(dispositivo_simonia)
+    .set({ id_propietario: empresaId })
+    .where(eq(dispositivo_simonia.id, dispositivoId))
+    .returning();
+  return result[0];
+}
+
+export async function getDispositivosSinAsignar() {
+  const result = await db
+    .select()
+    .from(dispositivo_simonia)
+    .where(eq(dispositivo_simonia.id_propietario, null))
+    .orderBy(desc(dispositivo_simonia.fecha_registro));
+  return result;
 }
