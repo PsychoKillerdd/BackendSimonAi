@@ -52,7 +52,7 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
         })
       : 'N/A';
 
-    console.log(`📊 LECTURA REGISTRADA | Dispositivo: ${resultado.dispositivo.codigo_unico} | Colmena: ${resultado.colmena.nombre_colmena} | Hora Chile: ${fechaChile}`);
+    console.log(`📊 LECTURA REGISTRADA | Dispositivo: ${resultado.dispositivo.codigo_unico} | Colmena: ${resultado.colmena.nombre_colmena} | Hora Chile: ${fechaChile} | datos: ${JSON.stringify(payload)}`);
 
     res.status(201).json({ success: true, data: resultado });
   } catch (error: any) {
