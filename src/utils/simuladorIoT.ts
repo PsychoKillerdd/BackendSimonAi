@@ -164,8 +164,8 @@ export { SimuladorDispositivoIoT, type SimuladorConfig };
 // Si se ejecuta directamente
 if (import.meta.main) {
   const config: SimuladorConfig = {
-    codigo_dispositivo: process.env.CODIGO_DISPOSITIVO || 'SIM-003',
-    intervalo_minutos: Number(process.env.INTERVALO_MINUTOS) || 30,
+    codigo_dispositivo: process.env.CODIGO_DISPOSITIVO || 'SIM-LONGAVI-1',
+    intervalo_minutos: Number(process.env.INTERVALO_MINUTOS) || 1,
     apiUrl: process.env.API_URL || 'http://localhost:3000'
   };
 

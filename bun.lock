@@ -4,7 +4,7 @@
     "": {
       "name": "simon_backend_mvp",
       "dependencies": {
-        "@supabase/supabase-js": "^2.45.0",
+        "@supabase/supabase-js": "^2.81.1",
         "@types/express": "^5.0.5",
         "@types/jsonwebtoken": "^9.0.10",
         "bcryptjs": "^3.0.3",
@@ -18,7 +18,7 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/cors": "^2.8.19",
-        "drizzle-kit": "^0.31.6",
+        "drizzle-kit": "^0.31.7",
         "tsx": "^4.20.6",
       },
       "peerDependencies": {

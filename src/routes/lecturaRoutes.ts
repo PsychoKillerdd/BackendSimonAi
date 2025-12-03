@@ -32,7 +32,7 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
     ejemplo_curl: `curl -X POST https://simon-backend-mvp-1.onrender.com/api/lecturas/sensor \\
   -H "Content-Type: application/json" \\
   -d '{
-    "codigo_dispositivo": "SIM-002",
+    "codigo_dispositivo": "SIM-003",
     "temperatura_c": 25.5,
     "humedad_h": 65.2,
     "peso_kg": 45.3,

@@ -12,6 +12,22 @@ import type { AuthRequest } from '../middlewares/authMiddleware';
 
 // Ingesta desde dispositivo (no requiere auth humano, usa codigo_unico)
 export async function createLecturaSensorHandler(req: Request, res: Response) {
+  const timestamp = new Date().toLocaleString('es-CL', {
+    timeZone: 'America/Santiago',
+    hour12: false
+  });
+
+  // 🔍 LOG 1: Registrar TODA petición que llega
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`🔵 [${timestamp}] PETICIÓN RECIBIDA: POST /api/lecturas/sensor`);
+  console.log(`📦 Headers:`, JSON.stringify({
+    'content-type': req.headers['content-type'],
+    'user-agent': req.headers['user-agent'],
+    'origin': req.headers['origin'],
+  }, null, 2));
+  console.log(`📦 Body recibido:`, JSON.stringify(req.body, null, 2));
+  console.log(`📦 IP origen:`, req.ip || req.socket.remoteAddress);
+
   try {
     const {
       codigo_dispositivo,
@@ -22,10 +38,15 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
       presion_hpa,
     } = req.body;
 
+    // 🔍 LOG 2: Validación de campo requerido
     if (!codigo_dispositivo) {
+      console.log(`❌ [${timestamp}] RECHAZADO: Falta campo codigo_dispositivo`);
+      console.log(`   Body recibido completo:`, req.body);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return res.status(400).json({
         success: false,
         error: 'Campo requerido: codigo_dispositivo',
+        recibido: req.body
       });
     }
 
@@ -38,9 +59,12 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
       presion_hpa,
     };
 
+    // 🔍 LOG 3: Intentando procesar
+    console.log(`⏳ [${timestamp}] PROCESANDO: Buscando dispositivo "${codigo_dispositivo}"...`);
+
     const resultado = await createLecturaSensorByCodigo(payload);
 
-    // Log para consola/Render
+    // 🔍 LOG 4: Éxito
     const fechaRegistro = resultado.lectura?.fecha_registro;
     const fechaChile = fechaRegistro 
       ? new Date(fechaRegistro).toLocaleString('es-CL', {
@@ -52,12 +76,43 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
         })
       : 'N/A';
 
-    console.log(`📊 LECTURA REGISTRADA | Dispositivo: ${resultado.dispositivo.codigo_unico} | Colmena: ${resultado.colmena.nombre_colmena} | Hora Chile: ${fechaChile} | datos: ${JSON.stringify(payload)}`);
+    console.log(`✅ [${timestamp}] LECTURA REGISTRADA EXITOSAMENTE`);
+    console.log(`   📱 Dispositivo: ${resultado.dispositivo.codigo_unico}`);
+    console.log(`   🐝 Colmena: ${resultado.colmena.nombre_colmena}`);
+    console.log(`   📊 Datos: ${JSON.stringify(payload)}`);
+    console.log(`   🕐 Hora registro: ${fechaChile}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     res.status(201).json({ success: true, data: resultado });
   } catch (error: any) {
-    console.error('Error creando lectura sensor:', error);
-    res.status(500).json({ success: false, error: error.message || 'Error al crear lectura' });
+    // 🔍 LOG 5: Errores detallados
+    console.log(`❌ [${timestamp}] ERROR AL PROCESAR LECTURA`);
+    console.log(`   Tipo error: ${error.name || 'Unknown'}`);
+    console.log(`   Mensaje: ${error.message}`);
+    console.log(`   Body enviado:`, req.body);
+    
+    // Detectar tipo específico de error
+    if (error.message.includes('Dispositivo no encontrado')) {
+      console.log(`   ⚠️  CAUSA: El código "${req.body.codigo_dispositivo}" no existe en BD`);
+      console.log(`   💡 SOLUCIÓN: Verificar que el dispositivo esté creado en /api/dispositivos`);
+    } else if (error.message.includes('no está asignado a ninguna colmena')) {
+      console.log(`   ⚠️  CAUSA: El dispositivo existe pero no tiene colmena asignada`);
+      console.log(`   💡 SOLUCIÓN: Asignar dispositivo a una colmena primero`);
+    } else if (error.message.includes('al menos un valor de sensor')) {
+      console.log(`   ⚠️  CAUSA: No se enviaron valores de sensores (temp, humedad, etc.)`);
+      console.log(`   💡 SOLUCIÓN: Enviar al menos un campo de sensor con valor`);
+    } else {
+      console.log(`   Stack trace:`, error.stack);
+    }
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Error al crear lectura',
+      codigo_dispositivo: req.body.codigo_dispositivo,
+      timestamp: timestamp
+    });
   }
 }
 

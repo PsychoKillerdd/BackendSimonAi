@@ -23,13 +23,24 @@ app.use(cors({
 
 app.use(express.json());
 
-// Logging de requests (solo en desarrollo)
-if (process.env.NODE_ENV !== 'production') {
-	app.use((req, _res, next) => {
-		console.log(`${req.method} ${req.path}`);
-		next();
-	});
-}// Root endpoint
+// 🔍 Middleware de logging detallado para TODAS las peticiones
+app.use((req, _res, next) => {
+	const timestamp = new Date().toISOString();
+	console.log(`\n[${timestamp}] ${req.method} ${req.path}`);
+	
+	// Log extra para peticiones POST/PATCH/PUT (que envían datos)
+	if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+		console.log(`  Content-Type: ${req.headers['content-type']}`);
+		console.log(`  Body size: ${JSON.stringify(req.body).length} bytes`);
+		
+		// Para endpoint de lecturas, mostrar preview del body
+		if (req.path.includes('/lecturas')) {
+			console.log(`  Body preview:`, JSON.stringify(req.body).substring(0, 200));
+		}
+	}
+	
+	next();
+});// Root endpoint
 app.get('/', (_req, res) => {
 	res.json({
 		message: 'Simon Backend MVP API',
@@ -42,6 +53,29 @@ app.get('/', (_req, res) => {
 			apiarios: '/api/apiarios',
 			dispositivos: '/api/dispositivos',
 			lecturas: '/api/lecturas/sensor'
+		}
+	});
+});
+
+// 🧪 Endpoint de prueba para verificar que el servidor recibe datos
+app.post('/api/test/echo', (req, res) => {
+	const timestamp = new Date().toISOString();
+	console.log('\n🧪 TEST ECHO - Petición recibida:', timestamp);
+	console.log('Headers:', JSON.stringify(req.headers, null, 2));
+	console.log('Body:', JSON.stringify(req.body, null, 2));
+	
+	res.json({
+		success: true,
+		message: 'Servidor recibió tu petición correctamente',
+		timestamp: timestamp,
+		recibido: {
+			headers: {
+				'content-type': req.headers['content-type'],
+				'user-agent': req.headers['user-agent']
+			},
+			body: req.body,
+			method: req.method,
+			path: req.path
 		}
 	});
 });
