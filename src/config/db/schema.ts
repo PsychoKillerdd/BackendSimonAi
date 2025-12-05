@@ -89,8 +89,8 @@ export const ubicacion_apiario = pgTable('ubicacion_apiario', {
 export const tipo_alerta = pgTable('tipo_alerta', {
   id: uuid('id').defaultRandom().primaryKey(),
   nombre: varchar('nombre').notNull().unique(),
-  codigo: char('codigo').notNull().unique(),
-  color_hex: char('color_hex'),
+  codigo: varchar('codigo').notNull().unique(),
+  color_hex: varchar('color_hex'),
   descripcion: text('descripcion'),
 });
 

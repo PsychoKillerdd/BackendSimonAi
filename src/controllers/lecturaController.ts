@@ -8,6 +8,7 @@ import {
   getEstadisticasColmena,
   type LecturaInput,
 } from '../services/lecturaService';
+import { checkAndCreateAlerts } from '../services/alertaService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
 
 // Ingesta desde dispositivo (no requiere auth humano, usa codigo_unico)
@@ -66,14 +67,14 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
 
     // 🔍 LOG 4: Éxito
     const fechaRegistro = resultado.lectura?.fecha_registro;
-    const fechaChile = fechaRegistro 
+    const fechaChile = fechaRegistro
       ? new Date(fechaRegistro).toLocaleString('es-CL', {
-          timeZone: 'America/Santiago',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        })
+        timeZone: 'America/Santiago',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      })
       : 'N/A';
 
     console.log(`✅ [${timestamp}] LECTURA REGISTRADA EXITOSAMENTE`);
@@ -81,7 +82,12 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
     console.log(`   🐝 Colmena: ${resultado.colmena.nombre_colmena}`);
     console.log(`   📊 Datos: ${JSON.stringify(payload)}`);
     console.log(`   🕐 Hora registro: ${fechaChile}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    // ⚡ Disparar evaluación de alertas (Fire & Forget para no bloquear respuesta)
+    if (resultado.lectura) {
+      checkAndCreateAlerts(resultado.lectura, resultado.colmena.id).catch(err => {
+        console.error('Error en proceso de alertas en segundo plano:', err);
+      });
+    }
 
     res.status(201).json({ success: true, data: resultado });
   } catch (error: any) {
@@ -90,7 +96,7 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
     console.log(`   Tipo error: ${error.name || 'Unknown'}`);
     console.log(`   Mensaje: ${error.message}`);
     console.log(`   Body enviado:`, req.body);
-    
+
     // Detectar tipo específico de error
     if (error.message.includes('Dispositivo no encontrado')) {
       console.log(`   ⚠️  CAUSA: El código "${req.body.codigo_dispositivo}" no existe en BD`);
@@ -104,11 +110,11 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
     } else {
       console.log(`   Stack trace:`, error.stack);
     }
-    
+
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: error.message || 'Error al crear lectura',
       codigo_dispositivo: req.body.codigo_dispositivo,
       timestamp: timestamp
@@ -176,9 +182,9 @@ export async function getHistorialGraficosHandler(req: AuthRequest, res: Respons
     }
 
     const historial = await getHistorialParaGraficos(colmenaId, Number(dias) || 7);
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       data: historial,
       periodo_dias: Number(dias) || 7,
       total_registros: historial.length
@@ -199,9 +205,9 @@ export async function getEstadisticasColmenaHandler(req: AuthRequest, res: Respo
     }
 
     const estadisticas = await getEstadisticasColmena(colmenaId, Number(dias) || 7);
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       data: estadisticas,
       periodo_dias: Number(dias) || 7
     });

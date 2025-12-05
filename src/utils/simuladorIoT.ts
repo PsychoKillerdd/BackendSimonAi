@@ -20,7 +20,7 @@ interface SimuladorConfig {
 class SimuladorDispositivoIoT {
   private config: SimuladorConfig;
   private intervalId: NodeJS.Timeout | null = null;
-  private baseTemperatura = 24; // °C base
+  private baseTemperatura = 37; // °C base
   private baseHumedad = 60; // % base
   private basePeso = 45; // kg base
   private baseSonido = 200; // Hz base
