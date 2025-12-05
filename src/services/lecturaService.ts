@@ -41,6 +41,7 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
 
   const insertValues: any = {
     id_colmena: colmenaAsignada.id,
+    id_dispositivo: dispositivo.id,
   };
 
   if (payload.temperatura_c !== undefined) insertValues.temperatura_c = payload.temperatura_c;

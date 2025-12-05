@@ -117,6 +117,7 @@ export const alerta = pgTable('alerta', {
 export const lectura_sensor = pgTable('lectura_sensor', {
   id: uuid('id').defaultRandom().primaryKey(),
   id_colmena: uuid('id_colmena').references(() => colmena.id),
+  id_dispositivo: uuid('id_dispositivo').references(() => dispositivo_simonia.id),
   temperatura_c: numeric('temperatura_c'),
   humedad_h: numeric('humedad_h'),
   peso_kg: numeric('peso_kg'),
