@@ -6,6 +6,7 @@ import authRouter from './routes/authRoutes';
 import apiarioRouter from './routes/apiarioRoutes';
 import dispositivoRouter from './routes/dispositivoRoutes';
 import lecturaRouter from './routes/lecturaRoutes';
+import alertaRouter from './routes/alertaRoutes';
 import { db } from './config/db';
 import { sql } from 'drizzle-orm';
 import { startKeepAlive } from './utils/keepAlive';
@@ -52,7 +53,8 @@ app.get('/', (_req, res) => {
 			auth: '/auth/login',
 			apiarios: '/api/apiarios',
 			dispositivos: '/api/dispositivos',
-			lecturas: '/api/lecturas/sensor'
+			lecturas: '/api/lecturas/sensor',
+			alertas: '/api/alertas/empresa/todas'
 		}
 	});
 });
@@ -86,6 +88,7 @@ app.use('/auth', authRouter);
 app.use('/api', apiarioRouter);
 app.use('/api', dispositivoRouter);
 app.use('/api', lecturaRouter);
+app.use('/api', alertaRouter);
 
 // Health check endpoint mejorado
 app.get('/health', async (_req, res) => {
