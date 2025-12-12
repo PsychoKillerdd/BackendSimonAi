@@ -22,6 +22,14 @@ const REGLAS = [
         color: '#0000FF'
     },
     {
+        codigo: 'HUM_ALTA',
+        nombre: 'Humedad Alta',
+        descripcion: 'Humedad ambiente crítica',
+        condicion: (l: any) => l.humedad_h > 80,
+        prioridad: 'media' as const,
+        color: '#FFFF00'
+    },
+    {
         codigo: 'HUM_BAJA',
         nombre: 'Humedad Baja',
         descripcion: 'Humedad ambiente crítica',
@@ -36,6 +44,78 @@ const REGLAS = [
         condicion: (l: any) => l.sonido_hz > 500,
         prioridad: 'alta' as const,
         color: '#800080'
+    },
+    {
+        codigo: 'SONIDO_BAJO',
+        nombre: 'Nivel Ruido Bajo',
+        descripcion: 'Actividad inusualmente baja (sonido < 50Hz)',
+        condicion: (l: any) => l.sonido_hz < 50,
+        prioridad: 'media' as const,
+        color: '#808080'
+    },
+    {
+        codigo: 'PESO_ALTO',
+        nombre: 'Peso Alto',
+        descripcion: 'Aumento significativo de peso (más de 10kg)',
+        condicion: (l: any) => l.peso_kg > 10,
+        prioridad: 'baja' as const,
+        color: '#00FF00'
+    },
+    {
+        codigo: 'PESO_BAJO',
+        nombre: 'Peso Bajo',
+        descripcion: 'Disminución significativa de peso (menos de 2kg)',
+        condicion: (l: any) => l.peso_kg < 2,
+        prioridad: 'baja' as const,
+        color: '#008000'
+    },
+    {
+        codigo: 'PRESION_ALTA',
+        nombre: 'Presión Alta',
+        descripcion: 'Presión atmosférica elevada',
+        condicion: (l: any) => l.presion_hpa > 1020,
+        prioridad: 'baja' as const,
+        color: '#00FFFF'
+    },
+    {
+        codigo: 'PRESION_BAJA',
+        nombre: 'Presión Baja',
+        descripcion: 'Presión atmosférica baja',
+        condicion: (l: any) => l.presion_hpa < 980,
+        prioridad: 'baja' as const,
+        color: '#FFC0CB'
+    },
+    {
+        codigo: 'HUM_CRITICA',
+        nombre: 'Humedad Crítica',
+        descripcion: 'Humedad extremadamente baja',
+        condicion: (l: any) => l.humedad_h < 10,
+        prioridad: 'alta' as const,
+        color: '#FF69B4'
+    },
+    {
+        codigo: 'TEMP_EXTREMA',
+        nombre: 'Temperatura Extrema',
+        descripcion: 'Temperatura fuera de rango extremo',
+        condicion: (l: any) => l.temperatura_c < 0 || l.temperatura_c > 40,
+        prioridad: 'alta' as const,
+        color: '#8B0000'
+    },
+    {
+        codigo: 'SONIDO_EXTREMO',
+        nombre: 'Nivel de Sonido Extremo',
+        descripcion: 'Nivel de sonido extremadamente alto',
+        condicion: (l: any) => l.sonido_hz > 1000,
+        prioridad: 'alta' as const,
+        color: '#4B0082'
+    },
+    {
+        codigo: 'PESO_CRITICO',
+        nombre: 'Peso Crítico',
+        descripcion: 'Peso extremadamente bajo',
+        condicion: (l: any) => l.peso_kg < 1,
+        prioridad: 'alta' as const,
+        color: '#2F4F4F'
     }
 ];
 
