@@ -166,7 +166,7 @@ if (import.meta.main) {
   const config: SimuladorConfig = {
     codigo_dispositivo: process.env.CODIGO_DISPOSITIVO || 'SIM-LONGAVI-1',
     intervalo_minutos: Number(process.env.INTERVALO_MINUTOS) || 1,
-    apiUrl: process.env.API_URL || 'http://localhost:3000'
+    apiUrl: process.env.API_URL || 'https://simon-backend-mvp-1.onrender.com'
   };
 
   const simulador = new SimuladorDispositivoIoT(config);

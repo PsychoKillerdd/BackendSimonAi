@@ -143,7 +143,7 @@ export async function marcarAlertaAtendida(
   const updated = await db
     .update(alerta)
     .set({
-      estado: 'atendida',
+      estado: 'resuelta',
       atendida_por: usuarioId,
       comentario_atencion: comentario,
     })

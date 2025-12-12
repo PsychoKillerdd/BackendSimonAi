@@ -81,7 +81,7 @@ app.post('/api/test/echo', (req, res) => {
 		}
 	});
 });
-
+0
 // Rutas
 app.use('/api', empresaRouter);
 app.use('/auth', authRouter);
