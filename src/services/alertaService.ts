@@ -176,7 +176,7 @@ async function createAlert(
         .limit(1);
 
     if (alertasExistentes.length > 0) {
-        const alertaExistente = alertasExistentes[0];
+        const alertaExistente = alertasExistentes[0]!;
         const minutosDesdeUltimaAlerta = Math.floor(
             (Date.now() - new Date(alertaExistente.fecha_evento!).getTime()) / 1000 / 60
         );
