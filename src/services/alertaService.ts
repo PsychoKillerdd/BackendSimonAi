@@ -1,6 +1,6 @@
 import { db } from '../config/db';
 import { alerta, tipo_alerta, lectura_sensor } from '../config/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 // Definición de reglas para el MVP (Hardcoded)
 // En el futuro, esto podría venir de una tabla 'reglas_alerta' configurada por usuario
@@ -156,7 +156,39 @@ async function createAlert(
         tipo = nuevosTipos[0];
     }
 
-    // 2. Crear la alerta
+    // 2. 🔍 VERIFICAR SI YA EXISTE UNA ALERTA PENDIENTE SIMILAR (últimas 24 horas)
+    const hace24Horas = new Date();
+    hace24Horas.setHours(hace24Horas.getHours() - 24);
+    const hace24HorasISO = hace24Horas.toISOString();
+
+    const alertasExistentes = await db
+        .select()
+        .from(alerta)
+        .where(
+            and(
+                eq(alerta.id_colmena, colmenaId),
+                eq(alerta.id_tipo_alerta, tipo.id),
+                eq(alerta.estado, 'pendiente'),
+                sql`${alerta.fecha_evento} >= ${hace24HorasISO}`
+            )
+        )
+        .orderBy(desc(alerta.fecha_evento))
+        .limit(1);
+
+    if (alertasExistentes.length > 0) {
+        const alertaExistente = alertasExistentes[0];
+        const minutosDesdeUltimaAlerta = Math.floor(
+            (Date.now() - new Date(alertaExistente.fecha_evento!).getTime()) / 1000 / 60
+        );
+        
+        console.log(
+            `⏭️ ALERTA DUPLICADA OMITIDA: ${regla.nombre} en colmena ${colmenaId} ` +
+            `(ya existe alerta pendiente hace ${minutosDesdeUltimaAlerta} minutos)`
+        );
+        return; // No crear alerta duplicada
+    }
+
+    // 3. Crear la alerta (solo si no existe una pendiente reciente)
     await db.insert(alerta).values({
         id_colmena: colmenaId,
         id_tipo_alerta: tipo.id,
@@ -170,14 +202,32 @@ async function createAlert(
         origen_alerta: 'automatico',
         estado: 'pendiente'
     });
+
+    console.log(`✅ ALERTA CREADA: ${regla.nombre} en colmena ${colmenaId}`);
 }
 
 function getTriggerParam(lectura: any, codigo: string): string {
     switch (codigo) {
         case 'TEMP_ALTA':
-        case 'TEMP_BAJA': return `${lectura.temperatura_c}°C`;
-        case 'HUM_BAJA': return `${lectura.humedad_h}%`;
-        case 'SONIDO_ALTO': return `${lectura.sonido_hz}Hz`;
-        default: return 'N/A';
+        case 'TEMP_BAJA':
+        case 'TEMP_EXTREMA':
+            return `${lectura.temperatura_c}°C`;
+        case 'HUM_ALTA':
+        case 'HUM_BAJA':
+        case 'HUM_CRITICA':
+            return `${lectura.humedad_h}%`;
+        case 'SONIDO_ALTO':
+        case 'SONIDO_BAJO':
+        case 'SONIDO_EXTREMO':
+            return `${lectura.sonido_hz}Hz`;
+        case 'PESO_ALTO':
+        case 'PESO_BAJO':
+        case 'PESO_CRITICO':
+            return `${lectura.peso_kg}kg`;
+        case 'PRESION_ALTA':
+        case 'PRESION_BAJA':
+            return `${lectura.presion_hpa}hPa`;
+        default: 
+            return 'N/A';
     }
 }
