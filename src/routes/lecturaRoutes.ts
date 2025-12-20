@@ -57,18 +57,135 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
   });
 });
 
-// Ingesta desde dispositivo (sin auth humana) - se podría asegurar con token de dispositivo en el futuro
+/**
+ * @swagger
+ * tags:
+ *   name: Lecturas
+ *   description: Ingesta y consulta de datos de sensores
+ */
+
+/**
+ * @swagger
+ * /api/lecturas/sensor:
+ *   post:
+ *     summary: Enviar datos desde el dispositivo IoT
+ *     tags: [Lecturas]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [codigo_dispositivo]
+ *             properties:
+ *               codigo_dispositivo:
+ *                 type: string
+ *               temperatura_c:
+ *                 type: number
+ *               humedad_h:
+ *                 type: number
+ *               peso_kg:
+ *                 type: number
+ *               sonido_hz:
+ *                 type: number
+ *               presion_hpa:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Lectura registrada
+ */
 router.post('/lecturas/sensor', createLecturaSensorHandler);
 
-// Lecturas por colmena (requiere auth)
+/**
+ * @swagger
+ * /api/lecturas/colmena/{colmenaId}:
+ *   get:
+ *     summary: Obtener historial de lecturas de una colmena
+ *     tags: [Lecturas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: colmenaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de lecturas
+ */
 router.get('/lecturas/colmena/:colmenaId', authenticateToken, getLecturasByColmenaHandler);
+
+/**
+ * @swagger
+ * /api/lecturas/colmena/{colmenaId}/ultima:
+ *   get:
+ *     summary: Obtener la última lectura de una colmena
+ *     tags: [Lecturas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: colmenaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Última lectura
+ */
 router.get('/lecturas/colmena/:colmenaId/ultima', authenticateToken, getUltimaLecturaColmenaHandler);
 
-// Lecturas por dispositivo (requiere auth)
-router.get('/lecturas/dispositivo/:codigo', authenticateToken, getLecturasByDispositivoHandler);
-
-// 📊 ENDPOINTS PARA GRÁFICOS (requieren auth)
+/**
+ * @swagger
+ * /api/lecturas/colmena/{colmenaId}/graficos:
+ *   get:
+ *     summary: Obtener datos formateados para gráficos
+ *     tags: [Lecturas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: colmenaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dias
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Datos para gráficos
+ */
 router.get('/lecturas/colmena/:colmenaId/graficos', authenticateToken, getHistorialGraficosHandler);
+
+/**
+ * @swagger
+ * /api/lecturas/colmena/{colmenaId}/estadisticas:
+ *   get:
+ *     summary: Obtener estadísticas (promedio, max, min) de una colmena
+ *     tags: [Lecturas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: colmenaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dias
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Estadísticas calculadas
+ */
 router.get('/lecturas/colmena/:colmenaId/estadisticas', authenticateToken, getEstadisticasColmenaHandler);
 
 export default router;

@@ -10,6 +10,8 @@ import alertaRouter from './routes/alertaRoutes';
 import { db } from './config/db';
 import { sql } from 'drizzle-orm';
 import { startKeepAlive } from './utils/keepAlive';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger';
 
 dotenv.config();
 
@@ -28,20 +30,23 @@ app.use(express.json());
 app.use((req, _res, next) => {
 	const timestamp = new Date().toISOString();
 	console.log(`\n[${timestamp}] ${req.method} ${req.path}`);
-	
+
 	// Log extra para peticiones POST/PATCH/PUT (que envían datos)
 	if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
 		console.log(`  Content-Type: ${req.headers['content-type']}`);
 		console.log(`  Body size: ${JSON.stringify(req.body).length} bytes`);
-		
+
 		// Para endpoint de lecturas, mostrar preview del body
 		if (req.path.includes('/lecturas')) {
 			console.log(`  Body preview:`, JSON.stringify(req.body).substring(0, 200));
 		}
 	}
-	
+
 	next();
-});// Root endpoint
+});// Swagger UI endpoint
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Root endpoint
 app.get('/', (_req, res) => {
 	res.json({
 		message: 'Simon Backend MVP API',
@@ -65,7 +70,7 @@ app.post('/api/test/echo', (req, res) => {
 	console.log('\n🧪 TEST ECHO - Petición recibida:', timestamp);
 	console.log('Headers:', JSON.stringify(req.headers, null, 2));
 	console.log('Body:', JSON.stringify(req.body, null, 2));
-	
+
 	res.json({
 		success: true,
 		message: 'Servidor recibió tu petición correctamente',
@@ -127,7 +132,7 @@ const HOST = '0.0.0.0'; // Necesario para Render y otros servicios de hosting
 app.listen(PORT, HOST, () => {
 	console.log(`✅ Server listening on ${HOST}:${PORT}`);
 	console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-	
+
 	// Iniciar keep-alive solo en producción (Render)
 	if (process.env.RENDER_EXTERNAL_URL) {
 		startKeepAlive(PORT);

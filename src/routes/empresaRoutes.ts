@@ -9,19 +9,126 @@ import {
 
 const router = express.Router();
 
-// POST /api/empresas
+/**
+ * @swagger
+ * tags:
+ *   name: Empresas
+ *   description: Administración de empresas y sus usuarios
+ */
+
+/**
+ * @swagger
+ * /api/empresas:
+ *   post:
+ *     summary: Crear una nueva empresa
+ *     tags: [Empresas]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nombre]
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               pais:
+ *                 type: string
+ *               direccion:
+ *                 type: string
+ *               telefono:
+ *                 type: string
+ *               correo_contacto:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Empresa creada
+ *   get:
+ *     summary: Listar todas las empresas (con paginación)
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de empresas
+ */
 router.post('/empresas', createEmpresaHandler);
-
-// GET /api/empresas/:empresaId - obtener empresa por ID (debe ir ANTES del GET genérico)
-router.get('/empresas/:empresaId', getEmpresaByIdHandler);
-
-// GET /api/empresas - con paginación
 router.get('/empresas', getAllEmpresasHandler);
 
-// POST /api/empresas/:empresaId/create-admin - crear admin a partir de la empresa (correo de empresa por defecto)
+/**
+ * @swagger
+ * /api/empresas/{empresaId}:
+ *   get:
+ *     summary: Obtener detalle de empresa por ID
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: path
+ *         name: empresaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalle de la empresa
+ */
+router.get('/empresas/:empresaId', getEmpresaByIdHandler);
+
+/**
+ * @swagger
+ * /api/empresas/{empresaId}/create-admin:
+ *   post:
+ *     summary: Crear el primer administrador para una empresa
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: path
+ *         name: empresaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Admin creado
+ */
 router.post('/empresas/:empresaId/create-admin', createAdminHandler);
 
-// POST /api/empresas/:empresaId/usuarios
+/**
+ * @swagger
+ * /api/empresas/{empresaId}/usuarios:
+ *   post:
+ *     summary: Agregar un nuevo usuario a la empresa
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: path
+ *         name: empresaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nombre, correo, tipo_usuario]
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               correo:
+ *                 type: string
+ *               tipo_usuario:
+ *                 type: string
+ *                 enum: [admin, apicultor]
+ *     responses:
+ *       201:
+ *         description: Usuario agregado
+ */
 router.post('/empresas/:empresaId/usuarios', createUsuarioHandler);
 
 // Nota: Los siguientes endpoints están deshabilitados porque requieren tablas que no están en el schema
