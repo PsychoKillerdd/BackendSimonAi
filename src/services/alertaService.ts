@@ -180,7 +180,7 @@ async function createAlert(
         const minutosDesdeUltimaAlerta = Math.floor(
             (Date.now() - new Date(alertaExistente.fecha_evento!).getTime()) / 1000 / 60
         );
-        
+
         console.log(
             `⏭️ ALERTA DUPLICADA OMITIDA: ${regla.nombre} en colmena ${colmenaId} ` +
             `(ya existe alerta pendiente hace ${minutosDesdeUltimaAlerta} minutos)`
@@ -227,7 +227,7 @@ function getTriggerParam(lectura: any, codigo: string): string {
         case 'PRESION_ALTA':
         case 'PRESION_BAJA':
             return `${lectura.presion_hpa}hPa`;
-        default: 
+        default:
             return 'N/A';
     }
 }

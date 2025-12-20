@@ -1,6 +1,6 @@
 import { db } from '../config/db';
 import { apiario, colmena, ubicacion_apiario, dispositivo_simonia } from '../config/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 export type ApiarioInput = {
   nombre: string;
@@ -45,31 +45,34 @@ export async function createApiarioWithUbicacion(empresaId: string, payload: Api
 }
 
 export async function getApiariosByEmpresa(empresaId: string) {
-  // Nota: Drizzle no soporta joins automáticos como Supabase
-  // Por ahora retornamos solo los apiarios
   const apiarios = await db.select().from(apiario).where(eq(apiario.id_empresa, empresaId));
-  
-  // Para obtener ubicaciones, necesitarías hacer queries separados o usar leftJoin
-  // Ejemplo con datos adicionales:
-  const result = [];
-  for (const api of apiarios) {
-    const ubicaciones = await db.select().from(ubicacion_apiario).where(eq(ubicacion_apiario.id_apiario, api.id));
-    result.push({ ...api, ubicacion_apiario: ubicaciones });
-  }
-  
+
+  if (apiarios.length === 0) return [];
+
+  const apiarioIds = apiarios.map(a => a.id);
+  const allUbicaciones = await db
+    .select()
+    .from(ubicacion_apiario)
+    .where(inArray(ubicacion_apiario.id_apiario, apiarioIds));
+
+  const result = apiarios.map(api => ({
+    ...api,
+    ubicacion_apiario: allUbicaciones.filter(u => u.id_apiario === api.id)
+  }));
+
   return result;
 }
 
 export async function getApiarioById(apiarioId: string) {
   const apiarios = await db.select().from(apiario).where(eq(apiario.id, apiarioId));
   if (apiarios.length === 0) return null;
-  
+
   const api = apiarios[0];
   if (!api) return null;
-  
+
   const ubicaciones = await db.select().from(ubicacion_apiario).where(eq(ubicacion_apiario.id_apiario, api.id));
   const colmenas = await db.select().from(colmena).where(eq(colmena.id_apiario_actual, api.id));
-  
+
   return { ...api, ubicacion_apiario: ubicaciones, colmena: colmenas };
 }
 
@@ -93,35 +96,36 @@ export async function createColmena(empresaId: string, payload: ColmenaInput) {
 }
 
 export async function getColmenasByApiario(apiarioId: string) {
-  const colmenas = await db.select().from(colmena).where(eq(colmena.id_apiario_actual, apiarioId));
-  
-  const result = [];
-  for (const col of colmenas) {
-    if (col.id_dispositivo) {
-      const dispositivos = await db.select().from(dispositivo_simonia).where(eq(dispositivo_simonia.id, col.id_dispositivo));
-      result.push({ ...col, dispositivo_simonia: dispositivos[0] || null });
-    } else {
-      result.push({ ...col, dispositivo_simonia: null });
-    }
-  }
-  
-  return result;
+  const rows = await db
+    .select({
+      colmena: colmena,
+      dispositivo_simonia: dispositivo_simonia,
+    })
+    .from(colmena)
+    .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
+    .where(eq(colmena.id_apiario_actual, apiarioId));
+
+  return rows.map(row => ({
+    ...row.colmena,
+    dispositivo_simonia: row.dispositivo_simonia
+  }));
 }
 
 export async function getColmenasByEmpresa(empresaId: string) {
-  const colmenas = await db.select().from(colmena).where(eq(colmena.id_empresa, empresaId));
-  
-  const result = [];
-  for (const col of colmenas) {
-    const apiarios = col.id_apiario_actual ? await db.select().from(apiario).where(eq(apiario.id, col.id_apiario_actual)) : [];
-    const dispositivos = col.id_dispositivo ? await db.select().from(dispositivo_simonia).where(eq(dispositivo_simonia.id, col.id_dispositivo)) : [];
-    
-    result.push({
-      ...col,
-      apiario: apiarios[0] || null,
-      dispositivo_simonia: dispositivos[0] || null
-    });
-  }
-  
-  return result;
+  const rows = await db
+    .select({
+      colmena: colmena,
+      apiario: apiario,
+      dispositivo_simonia: dispositivo_simonia,
+    })
+    .from(colmena)
+    .leftJoin(apiario, eq(colmena.id_apiario_actual, apiario.id))
+    .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
+    .where(eq(colmena.id_empresa, empresaId));
+
+  return rows.map(row => ({
+    ...row.colmena,
+    apiario: row.apiario,
+    dispositivo_simonia: row.dispositivo_simonia
+  }));
 }
