@@ -71,9 +71,24 @@ export async function getApiarioById(apiarioId: string) {
   if (!api) return null;
 
   const ubicaciones = await db.select().from(ubicacion_apiario).where(eq(ubicacion_apiario.id_apiario, api.id));
-  const colmenas = await db.select().from(colmena).where(eq(colmena.id_apiario_actual, api.id));
 
-  return { ...api, ubicacion_apiario: ubicaciones, colmena: colmenas };
+  const colmenasWithDevices = await db
+    .select({
+      colmena: colmena,
+      dispositivo_simonia: dispositivo_simonia,
+    })
+    .from(colmena)
+    .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
+    .where(eq(colmena.id_apiario_actual, api.id));
+
+  return {
+    ...api,
+    ubicacion_apiario: ubicaciones,
+    colmena: colmenasWithDevices.map(row => ({
+      ...row.colmena,
+      dispositivo_simonia: row.dispositivo_simonia
+    }))
+  };
 }
 
 export async function createColmena(empresaId: string, payload: ColmenaInput) {

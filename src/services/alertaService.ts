@@ -116,6 +116,14 @@ const REGLAS = [
         condicion: (l: any) => l.peso_kg < 1,
         prioridad: 'alta' as const,
         color: '#2F4F4F'
+    },
+    {
+        codigo: 'ENJAMBRAZON',
+        nombre: 'Posible Enjambrazón',
+        descripcion: 'Pérdida súbita de peso detectada (posible salida de enjambre)',
+        condicion: (l: any, p: any) => p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2),
+        prioridad: 'alta' as const,
+        color: '#FF4500'
     }
 ];
 
@@ -124,22 +132,37 @@ export async function checkAndCreateAlerts(
     colmenaId: string
 ) {
     try {
+        // Buscar la lectura anterior para reglas que comparan datos (como enjambrazón)
+        const lecturasAnteriores = await db
+            .select()
+            .from(lectura_sensor)
+            .where(
+                and(
+                    eq(lectura_sensor.id_colmena, colmenaId),
+                    sql`${lectura_sensor.id} != ${lectura.id}`
+                )
+            )
+            .orderBy(desc(lectura_sensor.fecha_registro))
+            .limit(1);
+
+        const lecturaAnterior = lecturasAnteriores[0] || null;
+
         for (const regla of REGLAS) {
-            if (regla.condicion(lectura)) {
+            if (regla.condicion(lectura, lecturaAnterior)) {
                 console.log(`⚠️ ALERTA DETECTADA: ${regla.nombre} en colmena ${colmenaId}`);
-                await createAlert(lectura, colmenaId, regla);
+                await createAlert(lectura, colmenaId, regla, lecturaAnterior);
             }
         }
     } catch (error) {
         console.error('Error evaluando alertas:', error);
-        // No lanzamos error para no interrumpir el flujo principal de guardar lectura
     }
 }
 
 async function createAlert(
     lectura: typeof lectura_sensor.$inferSelect,
     colmenaId: string,
-    regla: typeof REGLAS[0]
+    regla: typeof REGLAS[0],
+    lecturaAnterior: any = null
 ) {
     // 1. Obtener o crear el tipo de alerta
     let tipo = await db.query.tipo_alerta.findFirst({
@@ -188,11 +211,18 @@ async function createAlert(
         return; // No crear alerta duplicada
     }
 
-    // 3. Crear la alerta (solo si no existe una pendiente reciente)
+    // 3. Generar descripción dinámica
+    let descripcion = `${regla.nombre} detectada: ${getTriggerParam(lectura, regla.codigo)}`;
+    if (regla.codigo === 'ENJAMBRAZON' && lecturaAnterior) {
+        const diff = Number(lecturaAnterior.peso_kg) - Number(lectura.peso_kg);
+        descripcion = `Posible Enjambrazón: Pérdida de ${diff.toFixed(2)}kg (de ${lecturaAnterior.peso_kg}kg a ${lectura.peso_kg}kg)`;
+    }
+
+    // 4. Crear la alerta (solo si no existe una pendiente reciente)
     await db.insert(alerta).values({
         id_colmena: colmenaId,
         id_tipo_alerta: tipo.id,
-        descripcion: `${regla.nombre} detectada: ${getTriggerParam(lectura, regla.codigo)}`,
+        descripcion,
         temperatura_c: lectura.temperatura_c,
         humedad_h: lectura.humedad_h,
         peso_kg: lectura.peso_kg,
