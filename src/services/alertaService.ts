@@ -257,6 +257,8 @@ function getTriggerParam(lectura: any, codigo: string): string {
         case 'PRESION_ALTA':
         case 'PRESION_BAJA':
             return `${lectura.presion_hpa}hPa`;
+        case 'ENJAMBRAZON':
+            return `${lectura.peso_kg}kg`;
         default:
             return 'N/A';
     }
