@@ -135,6 +135,25 @@ const REGLAS_BASE = [
             (p && Number(l.temperatura_c) >= Number(p.temperatura_c) + 5 && Number(l.humedad_h) < 15),
         prioridad: 'alta' as const,
         color: '#FF0000'
+    },
+    {
+        codigo: 'ROBO_VANDALISMO',
+        nombre: 'Posible Robo o Vandalismo',
+        descripcion: 'Actividad física o pérdida de peso inusual en horario nocturno',
+        condicion: (l: any, p: any) => {
+            const hora = new Date().getHours();
+            const esNocturno = hora >= 21 || hora <= 6;
+            if (!esNocturno) return false;
+
+            // Caso 1: Pérdida significativa de peso nocturna (> 3kg)
+            const perdidaPeso = p && p.peso_kg && l.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 3);
+            // Caso 2: Ruido fuerte nocturno (> 400Hz) indica manipulación
+            const ruidoInusual = Number(l.sonido_hz) > 400;
+
+            return perdidaPeso || ruidoInusual;
+        },
+        prioridad: 'alta' as const,
+        color: '#000000'
     }
 ];
 
@@ -302,6 +321,12 @@ async function createAlert(
         }
     }
 
+    if (regla.codigo === 'ROBO_VANDALISMO') {
+        const hora = new Date().getHours();
+        const causa = Number(lectura.sonido_hz) > 400 ? 'Ruido inusual' : 'Pérdida de peso';
+        descripcion = `Alerta de Seguridad: ${causa} detectado a las ${hora}:00 hrs. Posible manipulación humana.`;
+    }
+
     // 4. Crear la alerta (solo si no existe una pendiente reciente)
     await db.insert(alerta).values({
         id_colmena: colmenaId,
@@ -349,6 +374,8 @@ function getTriggerParam(lectura: any, codigo: string): string {
         case 'PRE_ENJAMBRAZON_ACUSTICA':
         case 'ATAQUE_O_ESTRES':
             return `${lectura.sonido_hz}Hz`;
+        case 'ROBO_VANDALISMO':
+            return `${lectura.peso_kg}kg / ${lectura.sonido_hz}Hz`;
         default:
             return 'N/A';
     }
