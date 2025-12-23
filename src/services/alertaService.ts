@@ -4,12 +4,13 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 
 // Definición de reglas para el MVP (Hardcoded)
 // En el futuro, esto podría venir de una tabla 'reglas_alerta' configurada por usuario
-const REGLAS = [
+// 🔊 Reglas base (Parámetros físicos)
+const REGLAS_BASE = [
     {
         codigo: 'TEMP_ALTA',
         nombre: 'Temperatura Alta',
         descripcion: 'Temperatura supera el umbral seguro',
-        condicion: (l: any) => l.temperatura_c > 35,
+        condicion: (l: any) => Number(l.temperatura_c) > 35,
         prioridad: 'alta' as const,
         color: '#FF0000'
     },
@@ -17,7 +18,7 @@ const REGLAS = [
         codigo: 'TEMP_BAJA',
         nombre: 'Temperatura Baja',
         descripcion: 'Temperatura bajo el mínimo seguro',
-        condicion: (l: any) => l.temperatura_c < 5,
+        condicion: (l: any) => Number(l.temperatura_c) < 5,
         prioridad: 'media' as const,
         color: '#0000FF'
     },
@@ -25,7 +26,7 @@ const REGLAS = [
         codigo: 'HUM_ALTA',
         nombre: 'Humedad Alta',
         descripcion: 'Humedad ambiente crítica',
-        condicion: (l: any) => l.humedad_h > 80,
+        condicion: (l: any) => Number(l.humedad_h) > 80,
         prioridad: 'media' as const,
         color: '#FFFF00'
     },
@@ -33,7 +34,7 @@ const REGLAS = [
         codigo: 'HUM_BAJA',
         nombre: 'Humedad Baja',
         descripcion: 'Humedad ambiente crítica',
-        condicion: (l: any) => l.humedad_h < 20,
+        condicion: (l: any) => Number(l.humedad_h) < 20,
         prioridad: 'media' as const,
         color: '#FFA500'
     },
@@ -41,7 +42,7 @@ const REGLAS = [
         codigo: 'SONIDO_ALTO',
         nombre: 'Nivel Ruido Alto',
         descripcion: 'Posible perturbación o ataque (sonido > 500Hz)',
-        condicion: (l: any) => l.sonido_hz > 500,
+        condicion: (l: any) => Number(l.sonido_hz) > 500,
         prioridad: 'alta' as const,
         color: '#800080'
     },
@@ -49,7 +50,7 @@ const REGLAS = [
         codigo: 'SONIDO_BAJO',
         nombre: 'Nivel Ruido Bajo',
         descripcion: 'Actividad inusualmente baja (sonido < 50Hz)',
-        condicion: (l: any) => l.sonido_hz < 50,
+        condicion: (l: any) => Number(l.sonido_hz) < 50,
         prioridad: 'media' as const,
         color: '#808080'
     },
@@ -57,7 +58,7 @@ const REGLAS = [
         codigo: 'PESO_ALTO',
         nombre: 'Peso Alto',
         descripcion: 'Aumento significativo de peso (más de 10kg)',
-        condicion: (l: any) => l.peso_kg > 10,
+        condicion: (l: any) => Number(l.peso_kg) > 10,
         prioridad: 'baja' as const,
         color: '#00FF00'
     },
@@ -65,7 +66,7 @@ const REGLAS = [
         codigo: 'PESO_BAJO',
         nombre: 'Peso Bajo',
         descripcion: 'Disminución significativa de peso (menos de 2kg)',
-        condicion: (l: any) => l.peso_kg < 2,
+        condicion: (l: any) => Number(l.peso_kg) < 2,
         prioridad: 'baja' as const,
         color: '#008000'
     },
@@ -73,7 +74,7 @@ const REGLAS = [
         codigo: 'PRESION_ALTA',
         nombre: 'Presión Alta',
         descripcion: 'Presión atmosférica elevada',
-        condicion: (l: any) => l.presion_hpa > 1020,
+        condicion: (l: any) => Number(l.presion_hpa) > 1020,
         prioridad: 'baja' as const,
         color: '#00FFFF'
     },
@@ -81,7 +82,7 @@ const REGLAS = [
         codigo: 'PRESION_BAJA',
         nombre: 'Presión Baja',
         descripcion: 'Presión atmosférica baja',
-        condicion: (l: any) => l.presion_hpa < 980,
+        condicion: (l: any) => Number(l.presion_hpa) < 980,
         prioridad: 'baja' as const,
         color: '#FFC0CB'
     },
@@ -89,7 +90,7 @@ const REGLAS = [
         codigo: 'HUM_CRITICA',
         nombre: 'Humedad Crítica',
         descripcion: 'Humedad extremadamente baja',
-        condicion: (l: any) => l.humedad_h < 10,
+        condicion: (l: any) => Number(l.humedad_h) < 10,
         prioridad: 'alta' as const,
         color: '#FF69B4'
     },
@@ -97,7 +98,7 @@ const REGLAS = [
         codigo: 'TEMP_EXTREMA',
         nombre: 'Temperatura Extrema',
         descripcion: 'Temperatura fuera de rango extremo',
-        condicion: (l: any) => l.temperatura_c < 0 || l.temperatura_c > 40,
+        condicion: (l: any) => Number(l.temperatura_c) < 0 || Number(l.temperatura_c) > 40,
         prioridad: 'alta' as const,
         color: '#8B0000'
     },
@@ -105,7 +106,7 @@ const REGLAS = [
         codigo: 'SONIDO_EXTREMO',
         nombre: 'Nivel de Sonido Extremo',
         descripcion: 'Nivel de sonido extremadamente alto',
-        condicion: (l: any) => l.sonido_hz > 1000,
+        condicion: (l: any) => Number(l.sonido_hz) > 1000,
         prioridad: 'alta' as const,
         color: '#4B0082'
     },
@@ -113,7 +114,7 @@ const REGLAS = [
         codigo: 'PESO_CRITICO',
         nombre: 'Peso Crítico',
         descripcion: 'Peso extremadamente bajo',
-        condicion: (l: any) => l.peso_kg < 1,
+        condicion: (l: any) => Number(l.peso_kg) < 1,
         prioridad: 'alta' as const,
         color: '#2F4F4F'
     },
@@ -126,6 +127,66 @@ const REGLAS = [
         color: '#FF4500'
     }
 ];
+
+// 🔊 Reglas acústicas avanzadas
+const REGLAS_ACUSTICAS = [
+    {
+        codigo: 'ORFANDAD_ACUSTICA',
+        nombre: 'Posible Orfandad Detectada',
+        descripcion: 'Patrón acústico tipo warble/rugido compatible con ausencia de reina',
+        condicion: (l: any, p: any) =>
+            p &&
+            Number(l.sonido_hz) >= 165 &&
+            Number(l.sonido_hz) <= 285 &&
+            Number(p.sonido_hz) > 0 &&
+            (Number(p.sonido_hz) - Number(l.sonido_hz)) / Number(p.sonido_hz) >= 0.3,
+        prioridad: 'alta' as const,
+        color: '#B22222'
+    },
+    {
+        codigo: 'PRE_ENJAMBRAZON_ACUSTICA',
+        nombre: 'Alta Probabilidad de Enjambrazón',
+        descripcion: 'Incremento acústico progresivo compatible con preparación de enjambre',
+        condicion: (l: any, p: any) =>
+            p &&
+            Number(l.sonido_hz) >= 180 &&
+            Number(l.sonido_hz) <= 350 &&
+            Number(l.sonido_hz) > Number(p.sonido_hz) &&
+            (!l.peso_kg || !p.peso_kg || Math.abs(Number(l.peso_kg) - Number(p.peso_kg)) < 1),
+        prioridad: 'media' as const,
+        color: '#FFA500'
+    },
+    {
+        codigo: 'ENJAMBRAZON_ACUSTICA_CONFIRMADA',
+        nombre: 'Enjambrazón en Progreso',
+        descripcion: 'Aumento acústico seguido de pérdida de peso indica salida de enjambre',
+        condicion: (l: any, p: any) =>
+            p &&
+            Number(l.sonido_hz) >= 400 &&
+            p.peso_kg &&
+            l.peso_kg &&
+            (Number(p.peso_kg) - Number(l.peso_kg)) >= 2,
+        prioridad: 'alta' as const,
+        color: '#FF4500'
+    },
+    {
+        codigo: 'ATAQUE_O_ESTRES',
+        nombre: 'Estrés Defensivo o Ataque Externo',
+        descripcion: 'Pico acústico agudo indica perturbación severa o ataque',
+        condicion: (l: any, p: any) =>
+            p &&
+            Number(l.sonido_hz) >= 700 &&
+            Number(l.sonido_hz) > Number(p.sonido_hz) * 1.5,
+        prioridad: 'alta' as const,
+        color: '#8B0000'
+    }
+];
+
+const REGLAS = [
+    ...REGLAS_BASE,
+    ...REGLAS_ACUSTICAS
+];
+
 
 export async function checkAndCreateAlerts(
     lectura: typeof lectura_sensor.$inferSelect,
@@ -213,9 +274,13 @@ async function createAlert(
 
     // 3. Generar descripción dinámica
     let descripcion = `${regla.nombre} detectada: ${getTriggerParam(lectura, regla.codigo)}`;
-    if (regla.codigo === 'ENJAMBRAZON' && lecturaAnterior) {
+
+    if ((regla.codigo === 'ENJAMBRAZON' || regla.codigo === 'ENJAMBRAZON_ACUSTICA_CONFIRMADA') && lecturaAnterior) {
         const diff = Number(lecturaAnterior.peso_kg) - Number(lectura.peso_kg);
-        descripcion = `Posible Enjambrazón: Pérdida de ${diff.toFixed(2)}kg (de ${lecturaAnterior.peso_kg}kg a ${lectura.peso_kg}kg)`;
+        descripcion = `${regla.nombre}: Pérdida de ${diff.toFixed(2)}kg (de ${lecturaAnterior.peso_kg}kg a ${lectura.peso_kg}kg)`;
+        if (regla.codigo === 'ENJAMBRAZON_ACUSTICA_CONFIRMADA') {
+            descripcion += ` con pico acústico de ${lectura.sonido_hz}Hz`;
+        }
     }
 
     // 4. Crear la alerta (solo si no existe una pendiente reciente)
@@ -258,7 +323,12 @@ function getTriggerParam(lectura: any, codigo: string): string {
         case 'PRESION_BAJA':
             return `${lectura.presion_hpa}hPa`;
         case 'ENJAMBRAZON':
+        case 'ENJAMBRAZON_ACUSTICA_CONFIRMADA':
             return `${lectura.peso_kg}kg`;
+        case 'ORFANDAD_ACUSTICA':
+        case 'PRE_ENJAMBRAZON_ACUSTICA':
+        case 'ATAQUE_O_ESTRES':
+            return `${lectura.sonido_hz}Hz`;
         default:
             return 'N/A';
     }
