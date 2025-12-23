@@ -61,7 +61,7 @@ Content-Type: application/json
       "presion_hpa": "1012.8",
       "sonido_hz": "115.2",
       "fecha_evento": "2025-12-12T09:15:00.000Z",
-      "estado": "atendida",
+      "estado": "resuelta",
       "prioridad": "media",
       "origen_alerta": "automatico",
       "comentario_atencion": "Revisado y corregido sistema de ventilación",
@@ -666,7 +666,7 @@ async function cargarAlertasColmena(colmenaId) {
 | Estado | Descripción |
 |--------|-------------|
 | `pendiente` | Alerta no atendida, requiere acción |
-| `atendida` | Alerta revisada y resuelta por usuario |
+| `resuelta` | Alerta revisada y resuelta por usuario |
 
 ---
 
@@ -690,7 +690,7 @@ async function cargarAlertasColmena(colmenaId) {
 | `/alertas/empresa/pendientes` | GET | ✅ JWT | Solo pendientes de la empresa |
 | `/alertas/empresa/resumen` | GET | ✅ JWT | Estadísticas agregadas |
 | `/alertas/empresa/fecha` | GET | ✅ JWT | Alertas por rango de fechas |
-| `/alertas/:id/atender` | PATCH | ✅ JWT | Marcar como atendida |
+| `/alertas/:id/atender` | PATCH | ✅ JWT | Marcar como resuelta |
 
 ---
 

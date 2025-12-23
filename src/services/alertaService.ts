@@ -341,7 +341,6 @@ async function createAlert(
         origen_alerta: 'automatico',
         estado: 'pendiente'
     });
-
     console.log(`✅ ALERTA CREADA: ${regla.nombre} en colmena ${colmenaId}`);
 }
 
