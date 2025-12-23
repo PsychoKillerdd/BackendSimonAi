@@ -7,6 +7,7 @@ import apiarioRouter from './routes/apiarioRoutes';
 import dispositivoRouter from './routes/dispositivoRoutes';
 import lecturaRouter from './routes/lecturaRoutes';
 import alertaRouter from './routes/alertaRoutes';
+import inspeccionRouter from './routes/inspeccionRoutes';
 import { db } from './config/db';
 import { sql } from 'drizzle-orm';
 import { startKeepAlive } from './utils/keepAlive';
@@ -94,6 +95,7 @@ app.use('/api', apiarioRouter);
 app.use('/api', dispositivoRouter);
 app.use('/api', lecturaRouter);
 app.use('/api', alertaRouter);
+app.use('/api/inspecciones', inspeccionRouter);
 
 // Health check endpoint mejorado
 app.get('/health', async (_req, res) => {
