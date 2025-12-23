@@ -125,6 +125,16 @@ const REGLAS_BASE = [
         condicion: (l: any, p: any) => p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2),
         prioridad: 'alta' as const,
         color: '#FF4500'
+    },
+    {
+        codigo: 'AMENAZA_INCENDIO',
+        nombre: 'Posible Incendio Detectado',
+        descripcion: 'Detección de calor extremo y sequedad compatible con fuego cercano',
+        condicion: (l: any, p: any) =>
+            Number(l.temperatura_c) >= 45 ||
+            (p && Number(l.temperatura_c) >= Number(p.temperatura_c) + 5 && Number(l.humedad_h) < 15),
+        prioridad: 'alta' as const,
+        color: '#FF0000'
     }
 ];
 
@@ -283,6 +293,15 @@ async function createAlert(
         }
     }
 
+    if (regla.codigo === 'AMENAZA_INCENDIO' && lecturaAnterior) {
+        const diffTemp = Number(lectura.temperatura_c) - Number(lecturaAnterior.temperatura_c);
+        if (diffTemp >= 5) {
+            descripcion = `¡ALERTA DE INCENDIO!: Aumento crítico de ${diffTemp.toFixed(1)}°C detectado abruptamente. Humedad: ${lectura.humedad_h}%`;
+        } else {
+            descripcion = `¡ALERTA DE INCENDIO!: Temperatura extrema de ${lectura.temperatura_c}°C detectada.`;
+        }
+    }
+
     // 4. Crear la alerta (solo si no existe una pendiente reciente)
     await db.insert(alerta).values({
         id_colmena: colmenaId,
@@ -306,6 +325,7 @@ function getTriggerParam(lectura: any, codigo: string): string {
         case 'TEMP_ALTA':
         case 'TEMP_BAJA':
         case 'TEMP_EXTREMA':
+        case 'AMENAZA_INCENDIO':
             return `${lectura.temperatura_c}°C`;
         case 'HUM_ALTA':
         case 'HUM_BAJA':
