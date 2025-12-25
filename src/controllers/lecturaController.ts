@@ -60,36 +60,34 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
       presion_hpa,
     };
 
-    // 🔍 LOG 3: Intentando procesar
-    console.log(`⏳ [${timestamp}] PROCESANDO: Buscando dispositivo "${codigo_dispositivo}"...`);
-
     const resultado = await createLecturaSensorByCodigo(payload);
 
-    // 🔍 LOG 4: Éxito
-    const fechaRegistro = resultado.lectura?.fecha_registro;
-    const fechaChile = fechaRegistro
-      ? new Date(fechaRegistro).toLocaleString('es-CL', {
-        timeZone: 'America/Santiago',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      })
-      : 'N/A';
-
-    console.log(`✅ [${timestamp}] LECTURA REGISTRADA EXITOSAMENTE`);
-    console.log(`   📱 Dispositivo: ${resultado.dispositivo.codigo_unico}`);
-    console.log(`   🐝 Colmena: ${resultado.colmena.nombre_colmena}`);
-    console.log(`   📊 Datos: ${JSON.stringify(payload)}`);
-    console.log(`   🕐 Hora registro: ${fechaChile}`);
-    // ⚡ Disparar evaluación de alertas (Fire & Forget para no bloquear respuesta)
-    if (resultado.lectura) {
-      checkAndCreateAlerts(resultado.lectura, resultado.colmena.id).catch(err => {
-        console.error('Error en proceso de alertas en segundo plano:', err);
-      });
-    }
-
+    // ✅ RESPUESTA INMEDIATA: El dispositivo necesita liberar el socket rápido
     res.status(201).json({ success: true, data: resultado });
+
+    // ⚡ PROCESOS EN SEGUNDO PLANO (Fire & Forget)
+    // No bloquean la respuesta al dispositivo
+    setImmediate(() => {
+      // Logging diferido para no retrasar la respuesta
+      const fechaRegistro = resultado.lectura?.fecha_registro;
+      const fechaChile = fechaRegistro
+        ? new Date(fechaRegistro).toLocaleString('es-CL', {
+          timeZone: 'America/Santiago',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        })
+        : 'N/A';
+
+      console.log(`✅ [${timestamp}] LECTURA REGISTRADA: ${resultado.dispositivo.codigo_unico} -> ${resultado.colmena.nombre_colmena} (${fechaChile})`);
+
+      if (resultado.lectura) {
+        checkAndCreateAlerts(resultado.lectura, resultado.colmena.id).catch(err => {
+          console.error('Error en proceso de alertas en segundo plano:', err);
+        });
+      }
+    });
   } catch (error: any) {
     // 🔍 LOG 5: Errores detallados
     console.log(`❌ [${timestamp}] ERROR AL PROCESAR LECTURA`);

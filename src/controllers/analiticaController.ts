@@ -10,8 +10,13 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
             return res.status(400).json({ success: false, error: 'colmenaId requerido' });
         }
 
-        // 1. Obtener última lectura para índices instantáneos
-        const ultimaLectura = await getUltimaLecturaByColmena(colmenaId as string);
+        // 1. Obtener datos necesarios en paralelo para mejorar el rendimiento
+        const [ultimaLectura, resultRecientes] = await Promise.all([
+            getUltimaLecturaByColmena(colmenaId as string),
+            getLecturasByColmena(colmenaId as string, 12)
+        ]);
+
+        const { lecturas: lecturasRecientes } = resultRecientes;
 
         if (!ultimaLectura) {
             return res.status(404).json({
@@ -19,9 +24,6 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
                 message: 'No hay lecturas disponibles para esta colmena'
             });
         }
-
-        // 2. Obtener lecturas de las últimas 6 horas para Homeostasis
-        const { lecturas: lecturasRecientes } = await getLecturasByColmena(colmenaId as string, 12);
 
         // --- CÁLCULOS ---
 

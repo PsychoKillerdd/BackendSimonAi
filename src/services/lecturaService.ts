@@ -12,21 +12,22 @@ export type LecturaInput = {
 };
 
 export async function createLecturaSensorByCodigo(payload: LecturaInput) {
-  // Buscar dispositivo por codigo_unico
-  const dispositivoRows = await db
-    .select()
+  // 1. Buscar dispositivo y colmena asociada en UNA sola consulta usando JOIN
+  const rows = await db
+    .select({
+      dispositivo: dispositivo_simonia,
+      colmena: colmena
+    })
     .from(dispositivo_simonia)
-    .where(eq(dispositivo_simonia.codigo_unico, payload.codigo_dispositivo));
-  const dispositivo = dispositivoRows[0];
-  if (!dispositivo) throw new Error('Dispositivo no encontrado');
+    .leftJoin(colmena, eq(colmena.id_dispositivo, dispositivo_simonia.id))
+    .where(eq(dispositivo_simonia.codigo_unico, payload.codigo_dispositivo))
+    .limit(1);
 
-  // Buscar colmena asociada al dispositivo
-  const colmenaRows = await db
-    .select()
-    .from(colmena)
-    .where(eq(colmena.id_dispositivo, dispositivo.id));
-  const colmenaAsignada = colmenaRows[0];
-  if (!colmenaAsignada) throw new Error('El dispositivo no está asignado a ninguna colmena');
+  const row = rows[0];
+  if (!row || !row.dispositivo) throw new Error('Dispositivo no encontrado');
+  if (!row.colmena) throw new Error('El dispositivo no está asignado a ninguna colmena');
+
+  const { dispositivo, colmena: colmenaAsignada } = row;
 
   // Validar que existe al menos un dato de sensor
   if (
@@ -53,6 +54,8 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
   // 1. Insertar en lectura_sensor (tabla principal)
   const result = await db.insert(lectura_sensor).values(insertValues).returning();
   const lecturaCreada = result[0];
+
+  if (!lecturaCreada) throw new Error('Error al guardar la lectura principal');
 
   // 2. Guardar en historial para gráficos
   await db.insert(historial_lectura_sensor).values({
