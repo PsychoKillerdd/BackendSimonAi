@@ -10,6 +10,7 @@ import {
   type ColmenaInput,
 } from '../services/apiarioService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
+import { getCachedData, invalidateCache } from '../utils/cache';
 
 export async function createApiarioHandler(req: AuthRequest, res: Response) {
   try {
@@ -32,6 +33,9 @@ export async function createApiarioHandler(req: AuthRequest, res: Response) {
 
     const result = await createApiarioWithUbicacion(id_empresa, payload);
 
+    // ⚡ INVALIDAR CACHE: Como creamos un apiario, el listado viejo ya no sirve
+    invalidateCache(`apiarios_empresa_${id_empresa}`);
+
     res.status(201).json({
       success: true,
       data: result,
@@ -48,8 +52,12 @@ export async function createApiarioHandler(req: AuthRequest, res: Response) {
 export async function getApiariosHandler(req: AuthRequest, res: Response) {
   try {
     const id_empresa = req.user!.id_empresa;
+    const cacheKey = `apiarios_empresa_${id_empresa}`;
 
-    const apiarios = await getApiariosByEmpresa(id_empresa);
+    // Cacheamos el listado por 5 minutos (300 segundos)
+    const apiarios = await getCachedData(cacheKey, 300, async () => {
+      return await getApiariosByEmpresa(id_empresa);
+    });
 
     res.status(200).json({
       success: true,

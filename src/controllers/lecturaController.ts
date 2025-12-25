@@ -10,6 +10,7 @@ import {
 } from '../services/lecturaService';
 import { checkAndCreateAlerts } from '../services/alertaService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
+import { getCachedData, invalidateCache } from '../utils/cache';
 
 // Ingesta desde dispositivo (no requiere auth humano, usa codigo_unico)
 export async function createLecturaSensorHandler(req: Request, res: Response) {
@@ -81,6 +82,10 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
         : 'N/A';
 
       console.log(`✅ [${timestamp}] LECTURA REGISTRADA: ${resultado.dispositivo.codigo_unico} -> ${resultado.colmena.nombre_colmena} (${fechaChile})`);
+
+      // ⚡ INVALIDAR CACHES RELACIONADOS: Los datos analíticos ahora son obsoletos
+      invalidateCache(`dashboard_operativo_${resultado.colmena.id}`);
+      invalidateCache(`ultima_lectura_colmena_${resultado.colmena.id}`);
 
       if (resultado.lectura) {
         checkAndCreateAlerts(resultado.lectura, resultado.colmena.id).catch(err => {
@@ -160,7 +165,13 @@ export async function getUltimaLecturaColmenaHandler(req: AuthRequest, res: Resp
     if (!colmenaId) {
       return res.status(400).json({ success: false, error: 'colmenaId requerido' });
     }
-    const lectura = await getUltimaLecturaByColmena(colmenaId);
+
+    const cacheKey = `ultima_lectura_colmena_${colmenaId}`;
+
+    const lectura = await getCachedData(cacheKey, 300, async () => {
+      return await getUltimaLecturaByColmena(colmenaId);
+    });
+
     res.status(200).json({ success: true, data: lectura });
   } catch (error: any) {
     console.error('Error obteniendo última lectura:', error);
