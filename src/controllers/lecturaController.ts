@@ -131,8 +131,8 @@ export async function getLecturasByColmenaHandler(req: AuthRequest, res: Respons
       return res.status(400).json({ success: false, error: 'colmenaId requerido' });
     }
 
-    const lecturas = await getLecturasByColmena(colmenaId, Number(limit) || 50);
-    res.status(200).json({ success: true, data: lecturas });
+    const { nombre_colmena, lecturas } = await getLecturasByColmena(colmenaId, Number(limit) || 50);
+    res.status(200).json({ success: true, nombre_colmena, data: lecturas });
   } catch (error: any) {
     console.error('Error obteniendo lecturas por colmena:', error);
     res.status(500).json({ success: false, error: error.message || 'Error al obtener lecturas' });

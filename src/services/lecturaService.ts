@@ -72,12 +72,24 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
 }
 
 export async function getLecturasByColmena(colmenaId: string, limit = 50) {
-  return await db
-    .select()
-    .from(lectura_sensor)
-    .where(eq(lectura_sensor.id_colmena, colmenaId))
-    .orderBy(desc(lectura_sensor.fecha_registro))
-    .limit(limit);
+  const [colmenaRows, lecturaRows] = await Promise.all([
+    db
+      .select({ nombre_colmena: colmena.nombre_colmena })
+      .from(colmena)
+      .where(eq(colmena.id, colmenaId))
+      .limit(1),
+    db
+      .select()
+      .from(lectura_sensor)
+      .where(eq(lectura_sensor.id_colmena, colmenaId))
+      .orderBy(desc(lectura_sensor.fecha_registro))
+      .limit(limit),
+  ]);
+
+  return {
+    nombre_colmena: colmenaRows[0]?.nombre_colmena || 'Colmena',
+    lecturas: lecturaRows,
+  };
 }
 
 export async function getLecturasByCodigoDispositivo(codigo_unico: string, limit = 50) {
@@ -95,7 +107,8 @@ export async function getLecturasByCodigoDispositivo(codigo_unico: string, limit
   const colmenaAsignada = colmenaRows[0];
   if (!colmenaAsignada) throw new Error('El dispositivo no está asignado a ninguna colmena');
 
-  return await getLecturasByColmena(colmenaAsignada.id, limit);
+  const { lecturas } = await getLecturasByColmena(colmenaAsignada.id, limit);
+  return lecturas;
 }
 
 export async function getUltimaLecturaByColmena(colmenaId: string) {

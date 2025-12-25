@@ -21,8 +21,7 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
         }
 
         // 2. Obtener lecturas de las últimas 6 horas para Homeostasis
-        // Por ahora obtenemos las últimas 12 lecturas (asumiendo 30 min cada una)
-        const lecturasRecientes = await getLecturasByColmena(colmenaId as string, 12);
+        const { lecturas: lecturasRecientes } = await getLecturasByColmena(colmenaId as string, 12);
 
         // --- CÁLCULOS ---
 
