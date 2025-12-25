@@ -14,12 +14,22 @@ import { sql } from 'drizzle-orm';
 import { startKeepAlive } from './utils/keepAlive';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
+import compression from 'compression';
+import helmet from 'helmet';
 
 dotenv.config();
 
 const startTime = Date.now();
 
 const app = express();
+
+// 🛡️ Seguridad y Optimización de Headers
+app.use(helmet({
+	contentSecurityPolicy: false, // Desactivar si causa problemas con Swagger, o configurar
+}));
+
+// 📦 Compresión de respuestas (Gzip)
+app.use(compression());
 
 // CORS configurado para producción
 app.use(cors({
@@ -28,24 +38,31 @@ app.use(cors({
 
 app.use(express.json());
 
-// 🔍 Middleware de logging detallado para TODAS las peticiones
+// 🔍 Middleware de logging EFICIENTE
 app.use((req, _res, next) => {
+	// Solo loguear en desarrollo o peticiones importantes
+	if (process.env.NODE_ENV === 'production' && req.path === '/health') return next();
+
 	const timestamp = new Date().toISOString();
-	console.log(`\n[${timestamp}] ${req.method} ${req.path}`);
+	const method = req.method;
+	const path = req.path;
 
-	// Log extra para peticiones POST/PATCH/PUT (que envían datos)
-	if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
-		console.log(`  Content-Type: ${req.headers['content-type']}`);
-		console.log(`  Body size: ${JSON.stringify(req.body).length} bytes`);
+	console.log(`[${timestamp}] ${method} ${path}`);
 
-		// Para endpoint de lecturas, mostrar preview del body
-		if (req.path.includes('/lecturas')) {
-			console.log(`  Body preview:`, JSON.stringify(req.body).substring(0, 200));
+	// Solo procesar body si es necesario y no es un stream gigante
+	if (['POST', 'PATCH', 'PUT'].includes(method) && req.headers['content-length']) {
+		const size = req.headers['content-length'];
+		console.log(`  Payload: ${size} bytes`);
+
+		if (path.includes('/lecturas') && req.body) {
+			const preview = JSON.stringify(req.body).substring(0, 100);
+			console.log(`  Preview: ${preview}...`);
 		}
 	}
 
 	next();
-});// Swagger UI endpoint
+});
+// Swagger UI endpoint
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root endpoint

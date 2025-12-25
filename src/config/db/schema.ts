@@ -1,5 +1,5 @@
 // drizzle/schema.ts
-import { pgTable, uuid, text, numeric, integer, boolean, varchar, char, jsonb, inet, timestamp, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, integer, boolean, varchar, char, jsonb, inet, timestamp, date, index } from 'drizzle-orm/pg-core';
 
 // 🧱 empresa
 export const empresa = pgTable('empresa', {
@@ -29,6 +29,10 @@ export const usuario = pgTable('usuario', {
   rut: varchar('rut').unique(),
   telefono: varchar('telefono'),
   fecha_creacion: timestamp('fecha_creacion').defaultNow(),
+}, (table) => {
+  return {
+    id_empresa_idx: index('usuario_id_empresa_idx').on(table.id_empresa),
+  };
 });
 
 // 🧱 rol
@@ -53,6 +57,10 @@ export const apiario = pgTable('apiario', {
   nombre: text('nombre').notNull(),
   limite_colmenas: integer('limite_colmenas').default(100),
   fecha_creacion: timestamp('fecha_creacion').defaultNow(),
+}, (table) => {
+  return {
+    id_empresa_idx: index('apiario_id_empresa_idx').on(table.id_empresa),
+  };
 });
 
 // 🧱 dispositivo_simonia
@@ -75,6 +83,12 @@ export const colmena = pgTable('colmena', {
   id_empresa: uuid('id_empresa').references(() => empresa.id),
   fecha_instalacion: date('fecha_instalacion').defaultNow(),
   fecha_creacion: timestamp('fecha_creacion').defaultNow(),
+}, (table) => {
+  return {
+    id_apiario_idx: index('colmena_id_apiario_idx').on(table.id_apiario_actual),
+    id_empresa_idx: index('colmena_id_empresa_idx').on(table.id_empresa),
+    id_dispositivo_idx: index('colmena_id_dispositivo_idx').on(table.id_dispositivo),
+  };
 });
 
 // 🧱 ubicacion_apiario
@@ -111,6 +125,12 @@ export const alerta = pgTable('alerta', {
   origen_alerta: varchar('origen_alerta').default('sistema'),
   atendida_por: uuid('atendida_por').references(() => usuario.id),
   comentario_atencion: text('comentario_atencion'),
+}, (table) => {
+  return {
+    id_colmena_idx: index('alerta_id_colmena_idx').on(table.id_colmena),
+    fecha_evento_idx: index('alerta_fecha_evento_idx').on(table.fecha_evento),
+    estado_idx: index('alerta_estado_idx').on(table.estado),
+  };
 });
 
 // 🧱 lectura_sensor
@@ -124,6 +144,12 @@ export const lectura_sensor = pgTable('lectura_sensor', {
   sonido_hz: numeric('sonido_hz'),
   presion_hpa: numeric('presion_hpa'),
   fecha_registro: timestamp('fecha_registro').defaultNow(),
+}, (table) => {
+  return {
+    id_colmena_idx: index('lectura_sensor_id_colmena_idx').on(table.id_colmena),
+    id_dispositivo_idx: index('lectura_sensor_id_dispositivo_idx').on(table.id_dispositivo),
+    fecha_registro_idx: index('lectura_sensor_fecha_registro_idx').on(table.fecha_registro),
+  };
 });
 
 // 🧱 historial_lectura_sensor
@@ -136,6 +162,11 @@ export const historial_lectura_sensor = pgTable('historial_lectura_sensor', {
   sonido_hz: numeric('sonido_hz'),
   presion_hpa: numeric('presion_hpa'),
   fecha_registro: timestamp('fecha_registro').defaultNow(),
+}, (table) => {
+  return {
+    id_lectura_idx: index('historial_id_lectura_idx').on(table.id_lectura),
+    fecha_registro_idx: index('historial_fecha_registro_idx').on(table.fecha_registro),
+  };
 });
 
 // 🧱 estado_colmena
