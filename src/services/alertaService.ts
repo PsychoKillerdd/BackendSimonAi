@@ -2,31 +2,44 @@ import { db } from '../config/db';
 import { alerta, tipo_alerta, lectura_sensor } from '../config/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
-// Definición de reglas para el MVP (Hardcoded)
-// En el futuro, esto podría venir de una tabla 'reglas_alerta' configurada por usuario
-// 🔊 Reglas base (Parámetros físicos)
+/**
+ * 🌎 Lógica Estacional de Chile
+ * Verano: Enero (0) - Abril (3)
+ * Otoño-Invierno: Mayo (4) - Septiembre (8)
+ * Primavera: Septiembre (8) - Diciembre (11)
+ * (Nota: Hay solapamientos biológicos, se manejan con prioridades dinámicas)
+ */
+const getTemporadaChile = () => {
+    const mes = new Date().getMonth(); // 0-11
+    if (mes >= 0 && mes <= 3) return 'VERANO';
+    if (mes >= 4 && mes <= 7) return 'INVIERNO'; // Mayo a Agosto (Core de invierno)
+    if (mes >= 8 && mes <= 11) return 'PRIMAVERA'; // Septiembre a Diciembre
+    return 'VERANO';
+};
+
+type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
 const REGLAS_BASE = [
     {
         codigo: 'TEMP_ALTA',
-        nombre: 'Temperatura Alta',
-        descripcion: 'Temperatura supera el umbral seguro',
-        condicion: (l: any) => Number(l.temperatura_c) > 35,
-        prioridad: 'alta' as const,
-        color: '#FF0000'
+        nombre: 'Estrés por Calor / Colapso',
+        descripcion: 'Riesgo de asfixia de la cría y derretimiento de ceras. T° > 38°C.',
+        condicion: (l: any) => Number(l.temperatura_c) > 38,
+        prioridad: 'media' as const,
+        color: '#FF4500'
     },
     {
         codigo: 'TEMP_BAJA',
-        nombre: 'Temperatura Baja',
-        descripcion: 'Temperatura bajo el mínimo seguro',
-        condicion: (l: any) => Number(l.temperatura_c) < 5,
+        nombre: 'Debilidad Térmica',
+        descripcion: 'Población insuficiente para calentar el nido. T° < 32°C.',
+        condicion: (l: any) => Number(l.temperatura_c) < 32,
         prioridad: 'media' as const,
         color: '#0000FF'
     },
     {
         codigo: 'HUM_ALTA',
-        nombre: 'Humedad Alta',
-        descripcion: 'Humedad ambiente crítica',
-        condicion: (l: any) => Number(l.humedad_h) > 80,
+        nombre: 'Riesgo Sanitario (Humedad)',
+        descripcion: 'Ambiente propicio para hongos (Ascosferosis). Humedad > 75%.',
+        condicion: (l: any) => Number(l.humedad_h) > 75,
         prioridad: 'media' as const,
         color: '#FFFF00'
     },
@@ -161,14 +174,11 @@ const REGLAS_BASE = [
 const REGLAS_ACUSTICAS = [
     {
         codigo: 'ORFANDAD_ACUSTICA',
-        nombre: 'Posible Orfandad Detectada',
-        descripcion: 'Patrón acústico tipo warble/rugido compatible con ausencia de reina',
-        condicion: (l: any, p: any) =>
-            p &&
-            Number(l.sonido_hz) >= 165 &&
-            Number(l.sonido_hz) <= 285 &&
-            Number(p.sonido_hz) > 0 &&
-            (Number(p.sonido_hz) - Number(l.sonido_hz)) / Number(p.sonido_hz) >= 0.3,
+        nombre: 'Riesgo de Orfandad',
+        descripcion: 'Vigor Crítico: Posible ausencia de reina detectada por patrón acústico < 180Hz.',
+        condicion: (l: any) =>
+            Number(l.sonido_hz) > 0 &&
+            Number(l.sonido_hz) < 180,
         prioridad: 'alta' as const,
         color: '#B22222'
     },
@@ -187,14 +197,11 @@ const REGLAS_ACUSTICAS = [
     },
     {
         codigo: 'ENJAMBRAZON_ACUSTICA_CONFIRMADA',
-        nombre: 'Enjambrazón en Progreso',
-        descripcion: 'Aumento acústico seguido de pérdida de peso indica salida de enjambre',
-        condicion: (l: any, p: any) =>
-            p &&
+        nombre: 'Alerta de Enjambrazón',
+        descripcion: 'Vigor Excedente: Sonido > 400Hz y Alza de T° interna (>36°C).',
+        condicion: (l: any) =>
             Number(l.sonido_hz) >= 400 &&
-            p.peso_kg &&
-            l.peso_kg &&
-            (Number(p.peso_kg) - Number(l.peso_kg)) >= 2,
+            Number(l.temperatura_c) > 36,
         prioridad: 'alta' as const,
         color: '#FF4500'
     },
@@ -236,11 +243,30 @@ export async function checkAndCreateAlerts(
             .limit(1);
 
         const lecturaAnterior = lecturasAnteriores[0] || null;
+        const temporada = getTemporadaChile();
 
         for (const regla of REGLAS) {
             if (regla.condicion(lectura, lecturaAnterior)) {
-                console.log(`⚠️ ALERTA DETECTADA: ${regla.nombre} en colmena ${colmenaId}`);
-                await createAlert(lectura, colmenaId, regla, lecturaAnterior);
+                // 🚀 AJUSTE DE PRIORIDAD ESTACIONAL
+                let prioridadFinal: Prioridad = regla.prioridad;
+
+                // Lógica de potenciación de alertas según temporada
+                if (temporada === 'VERANO') {
+                    if (['TEMP_ALTA', 'AMENAZA_INCENDIO', 'ROBO_VANDALISMO', 'SONIDO_EXTREMO'].includes(regla.codigo)) {
+                        prioridadFinal = 'alta';
+                    }
+                } else if (temporada === 'INVIERNO') {
+                    if (['TEMP_BAJA', 'HUM_ALTA', 'HUM_CRITICA', 'PESO_CRITICO'].includes(regla.codigo)) {
+                        prioridadFinal = 'alta';
+                    }
+                } else if (temporada === 'PRIMAVERA') {
+                    if (['ENJAMBRAZON', 'ORFANDAD_ACUSTICA', 'PRE_ENJAMBRAZON_ACUSTICA', 'ENJAMBRAZON_ACUSTICA_CONFIRMADA'].includes(regla.codigo)) {
+                        prioridadFinal = 'alta';
+                    }
+                }
+
+                console.log(`⚠️ ALERTA DETECTADA (${temporada}): ${regla.nombre} en colmena ${colmenaId} con prioridad ${prioridadFinal}`);
+                await createAlert(lectura, colmenaId, regla, lecturaAnterior, prioridadFinal);
             }
         }
     } catch (error) {
@@ -252,7 +278,8 @@ async function createAlert(
     lectura: typeof lectura_sensor.$inferSelect,
     colmenaId: string,
     regla: typeof REGLAS[0],
-    lecturaAnterior: any = null
+    lecturaAnterior: any = null,
+    prioridadAjustada?: Prioridad
 ) {
     // 1. Obtener o crear el tipo de alerta
     let tipo = await db.query.tipo_alerta.findFirst({
@@ -268,6 +295,9 @@ async function createAlert(
         }).returning();
         tipo = nuevosTipos[0];
     }
+
+    // Safety check para TypeScript
+    if (!tipo) return;
 
     // 2. 🔍 VERIFICAR SI YA EXISTE UNA ALERTA PENDIENTE SIMILAR (últimas 24 horas)
     const hace24Horas = new Date();
@@ -337,7 +367,7 @@ async function createAlert(
         peso_kg: lectura.peso_kg,
         presion_hpa: lectura.presion_hpa,
         sonido_hz: lectura.sonido_hz,
-        prioridad: regla.prioridad,
+        prioridad: prioridadAjustada || regla.prioridad,
         origen_alerta: 'automatico',
         estado: 'pendiente'
     });

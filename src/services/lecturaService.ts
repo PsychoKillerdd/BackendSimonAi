@@ -51,22 +51,25 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
   if (payload.sonido_hz !== undefined) insertValues.sonido_hz = payload.sonido_hz;
   if (payload.presion_hpa !== undefined) insertValues.presion_hpa = payload.presion_hpa;
 
-  // 1. Insertar en lectura_sensor (tabla principal)
+  // 1. Insertar en lectura_sensor (tabla principal) - CRÍTICO, debe completarse
   const result = await db.insert(lectura_sensor).values(insertValues).returning();
   const lecturaCreada = result[0];
 
   if (!lecturaCreada) throw new Error('Error al guardar la lectura principal');
 
-  // 2. Guardar en historial para gráficos
-  await db.insert(historial_lectura_sensor).values({
-    id_lectura: lecturaCreada.id,
-    temperatura_c: insertValues.temperatura_c,
-    humedad_h: insertValues.humedad_h,
-    peso_kg: insertValues.peso_kg,
-    sonido_hz: insertValues.sonido_hz,
-    presion_hpa: insertValues.presion_hpa,
+  // 2. ⚡ FIRE & FORGET: Guardar historial en segundo plano para no bloquear respuesta
+  setImmediate(() => {
+    db.insert(historial_lectura_sensor).values({
+      id_lectura: lecturaCreada.id,
+      temperatura_c: insertValues.temperatura_c,
+      humedad_h: insertValues.humedad_h,
+      peso_kg: insertValues.peso_kg,
+      sonido_hz: insertValues.sonido_hz,
+      presion_hpa: insertValues.presion_hpa,
+    }).catch(err => console.error('Error guardando historial (async):', err));
   });
 
+  // Retornamos solo lo esencial para reducir payload de respuesta
   return {
     lectura: lecturaCreada,
     colmena: { id: colmenaAsignada.id, nombre_colmena: colmenaAsignada.nombre_colmena },
