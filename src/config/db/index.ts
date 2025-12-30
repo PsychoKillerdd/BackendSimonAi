@@ -2,8 +2,9 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const client = postgres(process.env.SUPABASE_DB_URL!, {
-  max: 15,
-});
+
+const connectionString = process.env.SUPABASE_DB_URL || "postgresql://postgres.umzfmiyuqfbziwftqhzi:HBngWSfuPwG8kFaa@aws-1-sa-east-1.pooler.supabase.com:6543/postgres"
+
+const client = postgres(connectionString, { prepare: false })
 
 export const db = drizzle(client, { schema });
