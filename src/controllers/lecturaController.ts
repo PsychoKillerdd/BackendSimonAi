@@ -10,26 +10,9 @@ import {
 } from '../services/lecturaService';
 import { checkAndCreateAlerts } from '../services/alertaService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
-import { getCachedData, invalidateCache } from '../utils/cache';
 
 // Ingesta desde dispositivo (no requiere auth humano, usa codigo_unico)
 export async function createLecturaSensorHandler(req: Request, res: Response) {
-  const timestamp = new Date().toLocaleString('es-CL', {
-    timeZone: 'America/Santiago',
-    hour12: false
-  });
-
-  // 🔍 LOG 1: Registrar TODA petición que llega
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🔵 [${timestamp}] PETICIÓN RECIBIDA: POST /api/lecturas/sensor`);
-  console.log(`📦 Headers:`, JSON.stringify({
-    'content-type': req.headers['content-type'],
-    'user-agent': req.headers['user-agent'],
-    'origin': req.headers['origin'],
-  }, null, 2));
-  console.log(`📦 Body recibido:`, JSON.stringify(req.body, null, 2));
-  console.log(`📦 IP origen:`, req.ip || req.socket.remoteAddress);
-
   try {
     const {
       codigo_dispositivo,
@@ -40,15 +23,10 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
       presion_hpa,
     } = req.body;
 
-    // 🔍 LOG 2: Validación de campo requerido
     if (!codigo_dispositivo) {
-      console.log(`❌ [${timestamp}] RECHAZADO: Falta campo codigo_dispositivo`);
-      console.log(`   Body recibido completo:`, req.body);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return res.status(400).json({
         success: false,
-        error: 'Campo requerido: codigo_dispositivo',
-        recibido: req.body
+        error: 'Campo requerido: codigo_dispositivo'
       });
     }
 
@@ -63,13 +41,11 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
 
     const resultado = await createLecturaSensorByCodigo(payload);
 
-    // ✅ RESPUESTA INMEDIATA: El dispositivo necesita liberar el socket rápido
+    // ✅ RESPUESTA INMEDIATA: Prioridad máxima para el dispositivo IoT
     res.status(201).json({ success: true, data: resultado });
 
     // ⚡ PROCESOS EN SEGUNDO PLANO (Fire & Forget)
-    // No bloquean la respuesta al dispositivo
     setImmediate(() => {
-      // Logging diferido para no retrasar la respuesta
       const fechaRegistro = resultado.lectura?.fecha_registro;
       const fechaChile = fechaRegistro
         ? new Date(fechaRegistro).toLocaleString('es-CL', {
@@ -81,11 +57,7 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
         })
         : 'N/A';
 
-      console.log(`✅ [${timestamp}] LECTURA REGISTRADA: ${resultado.dispositivo.codigo_unico} -> ${resultado.colmena.nombre_colmena} (${fechaChile})`);
-
-      // ⚡ INVALIDAR CACHES RELACIONADOS: Los datos analíticos ahora son obsoletos
-      invalidateCache(`dashboard_operativo_${resultado.colmena.id}`);
-      invalidateCache(`ultima_lectura_colmena_${resultado.colmena.id}`);
+      console.log(`✅ LECTURA: ${resultado.dispositivo.codigo_unico} -> ${resultado.colmena.nombre_colmena} (${fechaChile})`);
 
       if (resultado.lectura) {
         checkAndCreateAlerts(resultado.lectura, resultado.colmena.id).catch(err => {
@@ -94,33 +66,10 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
       }
     });
   } catch (error: any) {
-    // 🔍 LOG 5: Errores detallados
-    console.log(`❌ [${timestamp}] ERROR AL PROCESAR LECTURA`);
-    console.log(`   Tipo error: ${error.name || 'Unknown'}`);
-    console.log(`   Mensaje: ${error.message}`);
-    console.log(`   Body enviado:`, req.body);
-
-    // Detectar tipo específico de error
-    if (error.message.includes('Dispositivo no encontrado')) {
-      console.log(`   ⚠️  CAUSA: El código "${req.body.codigo_dispositivo}" no existe en BD`);
-      console.log(`   💡 SOLUCIÓN: Verificar que el dispositivo esté creado en /api/dispositivos`);
-    } else if (error.message.includes('no está asignado a ninguna colmena')) {
-      console.log(`   ⚠️  CAUSA: El dispositivo existe pero no tiene colmena asignada`);
-      console.log(`   💡 SOLUCIÓN: Asignar dispositivo a una colmena primero`);
-    } else if (error.message.includes('al menos un valor de sensor')) {
-      console.log(`   ⚠️  CAUSA: No se enviaron valores de sensores (temp, humedad, etc.)`);
-      console.log(`   💡 SOLUCIÓN: Enviar al menos un campo de sensor con valor`);
-    } else {
-      console.log(`   Stack trace:`, error.stack);
-    }
-
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
+    console.error(`❌ ERROR LECTURA: ${error.message}`);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error al crear lectura',
-      codigo_dispositivo: req.body.codigo_dispositivo,
-      timestamp: timestamp
+      error: error.message || 'Error al crear lectura'
     });
   }
 }
@@ -166,12 +115,7 @@ export async function getUltimaLecturaColmenaHandler(req: AuthRequest, res: Resp
       return res.status(400).json({ success: false, error: 'colmenaId requerido' });
     }
 
-    const cacheKey = `ultima_lectura_colmena_${colmenaId}`;
-
-    const lectura = await getCachedData(cacheKey, 300, async () => {
-      return await getUltimaLecturaByColmena(colmenaId);
-    });
-
+    const lectura = await getUltimaLecturaByColmena(colmenaId);
     res.status(200).json({ success: true, data: lectura });
   } catch (error: any) {
     console.error('Error obteniendo última lectura:', error);
