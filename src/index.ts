@@ -150,7 +150,7 @@ app.get('/health', async (_req, res) => {
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0'; // Necesario para Render y otros servicios de hosting
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
 	console.log(`✅ Server listening on ${HOST}:${PORT}`);
 	console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
 
@@ -159,3 +159,22 @@ app.listen(PORT, HOST, () => {
 		startKeepAlive(PORT);
 	}
 });
+
+// 🛑 Manejo de SIGTERM (Render envía esto antes de detener el proceso)
+process.on('SIGTERM', () => {
+	console.log('🛑 SIGTERM received. Shutting down gracefully...');
+	server.close(() => {
+		console.log('✅ Server closed.');
+		process.exit(0);
+	});
+});
+
+// 🛑 Manejo de SIGINT (Ctrl+C en desarrollo)
+process.on('SIGINT', () => {
+	console.log('🛑 SIGINT received. Shutting down...');
+	server.close(() => {
+		console.log('✅ Server closed.');
+		process.exit(0);
+	});
+});
+
