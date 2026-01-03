@@ -135,10 +135,25 @@ const REGLAS_BASE = [
         codigo: 'ENJAMBRAZON',
         nombre: 'Posible Enjambrazón',
         descripcion: 'Pérdida súbita de peso detectada (posible salida de enjambre)',
-        condicion: (l: any, p: any) => p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2),
+        condicion: (l: any, p: any) => {
+            // Validar pérdida de peso >= 2kg
+            const perdidaPeso = p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2);
+            if (!perdidaPeso) return false;
+
+            // 🐝 HORARIO DE ALTA PROBABILIDAD: 11:00 AM - 4:30 PM (momento de más calor)
+            const hora = new Date().getHours();
+            const minutos = new Date().getMinutes();
+            const horaDecimal = hora + (minutos / 60);
+            const esHorarioPico = horaDecimal >= 11 && horaDecimal <= 16.5; // 11:00 - 16:30
+
+            // Marcar en la descripción si es horario de alta probabilidad
+            return perdidaPeso;
+        },
+        // La prioridad se ajusta dinámicamente en checkAndCreateAlerts según el horario
         prioridad: 'alta' as const,
         color: '#FF4500'
     },
+
     {
         codigo: 'AMENAZA_INCENDIO',
         nombre: 'Posible Incendio Detectado',
@@ -265,10 +280,25 @@ export async function checkAndCreateAlerts(
                     }
                 }
 
+                // 🐝 ENJAMBRAZÓN: Alta probabilidad entre 11:00 AM y 4:30 PM (momento de más calor)
+                if (regla.codigo === 'ENJAMBRAZON' || regla.codigo === 'PRE_ENJAMBRAZON_ACUSTICA') {
+                    const hora = new Date().getHours();
+                    const minutos = new Date().getMinutes();
+                    const horaDecimal = hora + (minutos / 60);
+                    const esHorarioPico = horaDecimal >= 11 && horaDecimal <= 16.5; // 11:00 - 16:30
+
+                    if (esHorarioPico) {
+                        prioridadFinal = 'critica';
+                        console.log(`🐝 ${regla.codigo} en horario pico (${hora}:${minutos.toString().padStart(2, '0')}) - Prioridad CRÍTICA`);
+                    }
+                }
+
+
                 console.log(`⚠️ ALERTA DETECTADA (${temporada}): ${regla.nombre} en colmena ${colmenaId} con prioridad ${prioridadFinal}`);
                 await createAlert(lectura, colmenaId, regla, lecturaAnterior, prioridadFinal);
             }
         }
+
     } catch (error) {
         console.error('Error evaluando alertas:', error);
     }

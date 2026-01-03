@@ -81,6 +81,8 @@ export const colmena = pgTable('colmena', {
   id_apiario_actual: uuid('id_apiario_actual').references(() => apiario.id),
   id_dispositivo: uuid('id_dispositivo').references(() => dispositivo_simonia.id),
   id_empresa: uuid('id_empresa').references(() => empresa.id),
+  // 🐝 Tipo de colmena: polinizacion | produccion (opcional)
+  tipo_colmena: varchar('tipo_colmena'),
   fecha_instalacion: date('fecha_instalacion').defaultNow(),
   fecha_creacion: timestamp('fecha_creacion').defaultNow(),
 }, (table) => {
@@ -90,6 +92,7 @@ export const colmena = pgTable('colmena', {
     id_dispositivo_idx: index('colmena_id_dispositivo_idx').on(table.id_dispositivo),
   };
 });
+
 
 // 🧱 ubicacion_apiario
 export const ubicacion_apiario = pgTable('ubicacion_apiario', {

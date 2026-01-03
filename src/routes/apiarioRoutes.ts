@@ -101,14 +101,21 @@ router.get('/apiarios/:apiarioId', authenticateToken, getApiarioByIdHandler);
  *                 type: string
  *               id_apiario_actual:
  *                 type: string
+ *                 format: uuid
  *               id_dispositivo:
  *                 type: string
+ *                 format: uuid
  *               fecha_instalacion:
  *                 type: string
  *                 format: date
+ *               tipo_colmena:
+ *                 type: string
+ *                 enum: [polinizacion, produccion]
+ *                 description: Tipo de colmena (polinización o producción de miel/subproductos)
  *     responses:
  *       201:
  *         description: Colmena creada
+
  *   get:
  *     summary: Obtener todas las colmenas (opcionalmente filtrado por apiario)
  *     tags: [Colmenas]

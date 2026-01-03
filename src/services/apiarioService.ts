@@ -13,6 +13,8 @@ export type ColmenaInput = {
   id_apiario_actual: string;
   id_dispositivo?: string;
   fecha_instalacion?: string;
+  // 🐝 Tipo de colmena (opcional): 'polinizacion' | 'produccion'
+  tipo_colmena?: 'polinizacion' | 'produccion';
 };
 
 export async function createApiarioWithUbicacion(empresaId: string, payload: ApiarioInput) {
@@ -106,9 +108,15 @@ export async function createColmena(empresaId: string, payload: ColmenaInput) {
     colmenaPayload.fecha_instalacion = payload.fecha_instalacion;
   }
 
+  // 🐝 Tipo de colmena (opcional)
+  if (payload.tipo_colmena) {
+    colmenaPayload.tipo_colmena = payload.tipo_colmena;
+  }
+
   const result = await db.insert(colmena).values(colmenaPayload).returning();
   return result[0];
 }
+
 
 export async function getColmenasByApiario(apiarioId: string) {
   const rows = await db
