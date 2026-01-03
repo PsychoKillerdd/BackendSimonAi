@@ -67,22 +67,23 @@ const REGLAS_BASE = [
         prioridad: 'media' as const,
         color: '#808080'
     },
-    {
-        codigo: 'PESO_ALTO',
-        nombre: 'Peso Alto',
-        descripcion: 'Aumento significativo de peso (más de 10kg)',
-        condicion: (l: any) => Number(l.peso_kg) > 10,
-        prioridad: 'baja' as const,
-        color: '#00FF00'
-    },
-    {
-        codigo: 'PESO_BAJO',
-        nombre: 'Peso Bajo',
-        descripcion: 'Disminución significativa de peso (menos de 2kg)',
-        condicion: (l: any) => Number(l.peso_kg) < 2,
-        prioridad: 'baja' as const,
-        color: '#008000'
-    },
+    // {
+    //     codigo: 'PESO_ALTO',
+    //     nombre: 'Peso Alto',
+    //     descripcion: 'Aumento significativo de peso (más de 10kg)',
+    //     condicion: (l: any) => Number(l.peso_kg) > 10,
+    //     prioridad: 'baja' as const,
+    //     color: '#00FF00'
+    // },
+    // ⚠️ DESACTIVADO: No hay sensor de peso
+    // {
+    //     codigo: 'PESO_BAJO',
+    //     nombre: 'Peso Bajo',
+    //     descripcion: 'Disminución significativa de peso (menos de 2kg)',
+    //     condicion: (l: any) => Number(l.peso_kg) < 2,
+    //     prioridad: 'baja' as const,
+    //     color: '#008000'
+    // },
     {
         codigo: 'PRESION_ALTA',
         nombre: 'Presión Alta',
@@ -123,36 +124,32 @@ const REGLAS_BASE = [
         prioridad: 'alta' as const,
         color: '#4B0082'
     },
-    {
-        codigo: 'PESO_CRITICO',
-        nombre: 'Peso Crítico',
-        descripcion: 'Peso extremadamente bajo',
-        condicion: (l: any) => Number(l.peso_kg) < 1,
-        prioridad: 'alta' as const,
-        color: '#2F4F4F'
-    },
-    {
-        codigo: 'ENJAMBRAZON',
-        nombre: 'Posible Enjambrazón',
-        descripcion: 'Pérdida súbita de peso detectada (posible salida de enjambre)',
-        condicion: (l: any, p: any) => {
-            // Validar pérdida de peso >= 2kg
-            const perdidaPeso = p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2);
-            if (!perdidaPeso) return false;
-
-            // 🐝 HORARIO DE ALTA PROBABILIDAD: 11:00 AM - 4:30 PM (momento de más calor)
-            const hora = new Date().getHours();
-            const minutos = new Date().getMinutes();
-            const horaDecimal = hora + (minutos / 60);
-            const esHorarioPico = horaDecimal >= 11 && horaDecimal <= 16.5; // 11:00 - 16:30
-
-            // Marcar en la descripción si es horario de alta probabilidad
-            return perdidaPeso;
-        },
-        // La prioridad se ajusta dinámicamente en checkAndCreateAlerts según el horario
-        prioridad: 'alta' as const,
-        color: '#FF4500'
-    },
+    // ⚠️ DESACTIVADO: No hay sensor de peso
+    // {
+    //     codigo: 'PESO_CRITICO',
+    //     nombre: 'Peso Crítico',
+    //     descripcion: 'Peso extremadamente bajo',
+    //     condicion: (l: any) => Number(l.peso_kg) < 1,
+    //     prioridad: 'alta' as const,
+    //     color: '#2F4F4F'
+    // },
+    // ⚠️ DESACTIVADO: No hay sensor de peso (depende del peso para detectar enjambrazón)
+    // {
+    //     codigo: 'ENJAMBRAZON',
+    //     nombre: 'Posible Enjambrazón',
+    //     descripcion: 'Pérdida súbita de peso detectada (posible salida de enjambre)',
+    //     condicion: (l: any, p: any) => {
+    //         const perdidaPeso = p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2);
+    //         if (!perdidaPeso) return false;
+    //         const hora = new Date().getHours();
+    //         const minutos = new Date().getMinutes();
+    //         const horaDecimal = hora + (minutos / 60);
+    //         const esHorarioPico = horaDecimal >= 11 && horaDecimal <= 16.5;
+    //         return perdidaPeso;
+    //     },
+    //     prioridad: 'alta' as const,
+    //     color: '#FF4500'
+    // },
 
     {
         codigo: 'AMENAZA_INCENDIO',
