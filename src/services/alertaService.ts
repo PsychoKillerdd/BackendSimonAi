@@ -18,40 +18,52 @@ const getTemporadaChile = () => {
 };
 
 type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
-const REGLAS_BASE = [
-    {
-        codigo: 'TEMP_ALTA',
-        nombre: 'Estrés por Calor / Colapso',
-        descripcion: 'Riesgo de asfixia de la cría y derretimiento de ceras. T° > 38°C.',
-        condicion: (l: any) => Number(l.temperatura_c) > 38,
-        prioridad: 'media' as const,
-        color: '#FF4500'
-    },
-    {
-        codigo: 'TEMP_BAJA',
-        nombre: 'Debilidad Térmica',
-        descripcion: 'Población insuficiente para calentar el nido. T° < 32°C.',
-        condicion: (l: any) => Number(l.temperatura_c) < 32,
-        prioridad: 'media' as const,
-        color: '#0000FF'
-    },
-    {
-        codigo: 'HUM_ALTA',
-        nombre: 'Riesgo Sanitario (Humedad)',
-        descripcion: 'Ambiente propicio para hongos (Ascosferosis). Humedad > 75%.',
-        condicion: (l: any) => Number(l.humedad_h) > 75,
-        prioridad: 'media' as const,
-        color: '#FFFF00'
-    },
-    {
-        codigo: 'HUM_BAJA',
-        nombre: 'Humedad Baja',
-        descripcion: 'Humedad ambiente crítica',
-        condicion: (l: any) => Number(l.humedad_h) < 20,
-        prioridad: 'media' as const,
-        color: '#FFA500'
-    },
-    // ⚠️ DESACTIVADO: Redundante con ATAQUE_O_ESTRES que es más específica
+
+type Regla = {
+    codigo: string;
+    nombre: string;
+    descripcion: string;
+    condicion: (l: any, p?: any) => boolean;
+    prioridad: Prioridad;
+    color: string;
+};
+
+// ⚠️ TODAS LAS REGLAS BASE DESACTIVADAS POR SOLICITUD DEL JEFE
+// Solo quedan activas: Orfandad, Enjambrazón, Estrés Defensivo
+const REGLAS_BASE: Regla[] = [
+    // ⚠️ DESACTIVADO: Por solicitud del jefe
+    // {
+    //     codigo: 'TEMP_ALTA',
+    //     nombre: 'Estrés por Calor / Colapso',
+    //     descripcion: 'Riesgo de asfixia de la cría y derretimiento de ceras. T° > 38°C.',
+    //     condicion: (l: any) => Number(l.temperatura_c) > 38,
+    //     prioridad: 'media' as const,
+    //     color: '#FF4500'
+    // },
+    // {
+    //     codigo: 'TEMP_BAJA',
+    //     nombre: 'Debilidad Térmica',
+    //     descripcion: 'Población insuficiente para calentar el nido. T° < 32°C.',
+    //     condicion: (l: any) => Number(l.temperatura_c) < 32,
+    //     prioridad: 'media' as const,
+    //     color: '#0000FF'
+    // },
+    // {
+    //     codigo: 'HUM_ALTA',
+    //     nombre: 'Riesgo Sanitario (Humedad)',
+    //     descripcion: 'Ambiente propicio para hongos (Ascosferosis). Humedad > 75%.',
+    //     condicion: (l: any) => Number(l.humedad_h) > 75,
+    //     prioridad: 'media' as const,
+    //     color: '#FFFF00'
+    // },
+    // {
+    //     codigo: 'HUM_BAJA',
+    //     nombre: 'Humedad Baja',
+    //     descripcion: 'Humedad ambiente crítica',
+    //     condicion: (l: any) => Number(l.humedad_h) < 20,
+    //     prioridad: 'media' as const,
+    //     color: '#FFA500'
+    // },
     // {
     //     codigo: 'SONIDO_ALTO',
     //     nombre: 'Nivel Ruido Alto',
@@ -60,64 +72,46 @@ const REGLAS_BASE = [
     //     prioridad: 'alta' as const,
     //     color: '#800080'
     // },
-    {
-        codigo: 'SONIDO_BAJO',
-        nombre: 'Nivel Ruido Bajo',
-        descripcion: 'Actividad inusualmente baja (sonido < 50Hz)',
-        condicion: (l: any) => Number(l.sonido_hz) < 50,
-        prioridad: 'media' as const,
-        color: '#808080'
-    },
     // {
-    //     codigo: 'PESO_ALTO',
-    //     nombre: 'Peso Alto',
-    //     descripcion: 'Aumento significativo de peso (más de 10kg)',
-    //     condicion: (l: any) => Number(l.peso_kg) > 10,
-    //     prioridad: 'baja' as const,
-    //     color: '#00FF00'
+    //     codigo: 'SONIDO_BAJO',
+    //     nombre: 'Nivel Ruido Bajo',
+    //     descripcion: 'Actividad inusualmente baja (sonido < 50Hz)',
+    //     condicion: (l: any) => Number(l.sonido_hz) < 50,
+    //     prioridad: 'media' as const,
+    //     color: '#808080'
     // },
-    // ⚠️ DESACTIVADO: No hay sensor de peso
     // {
-    //     codigo: 'PESO_BAJO',
-    //     nombre: 'Peso Bajo',
-    //     descripcion: 'Disminución significativa de peso (menos de 2kg)',
-    //     condicion: (l: any) => Number(l.peso_kg) < 2,
+    //     codigo: 'PRESION_ALTA',
+    //     nombre: 'Presión Alta',
+    //     descripcion: 'Presión atmosférica elevada',
+    //     condicion: (l: any) => Number(l.presion_hpa) > 1020,
     //     prioridad: 'baja' as const,
-    //     color: '#008000'
+    //     color: '#00FFFF'
     // },
-    {
-        codigo: 'PRESION_ALTA',
-        nombre: 'Presión Alta',
-        descripcion: 'Presión atmosférica elevada',
-        condicion: (l: any) => Number(l.presion_hpa) > 1020,
-        prioridad: 'baja' as const,
-        color: '#00FFFF'
-    },
-    {
-        codigo: 'PRESION_BAJA',
-        nombre: 'Presión Baja',
-        descripcion: 'Presión atmosférica baja',
-        condicion: (l: any) => Number(l.presion_hpa) < 980,
-        prioridad: 'baja' as const,
-        color: '#FFC0CB'
-    },
-    {
-        codigo: 'HUM_CRITICA',
-        nombre: 'Humedad Crítica',
-        descripcion: 'Humedad extremadamente baja',
-        condicion: (l: any) => Number(l.humedad_h) < 10,
-        prioridad: 'alta' as const,
-        color: '#FF69B4'
-    },
-    {
-        codigo: 'TEMP_EXTREMA',
-        nombre: 'Temperatura Extrema',
-        descripcion: 'Temperatura fuera de rango extremo',
-        condicion: (l: any) => Number(l.temperatura_c) < 0 || Number(l.temperatura_c) > 40,
-        prioridad: 'alta' as const,
-        color: '#8B0000'
-    },
-    // ⚠️ DESACTIVADO: Redundante con ATAQUE_O_ESTRES que es más específica
+    // {
+    //     codigo: 'PRESION_BAJA',
+    //     nombre: 'Presión Baja',
+    //     descripcion: 'Presión atmosférica baja',
+    //     condicion: (l: any) => Number(l.presion_hpa) < 980,
+    //     prioridad: 'baja' as const,
+    //     color: '#FFC0CB'
+    // },
+    // {
+    //     codigo: 'HUM_CRITICA',
+    //     nombre: 'Humedad Crítica',
+    //     descripcion: 'Humedad extremadamente baja',
+    //     condicion: (l: any) => Number(l.humedad_h) < 10,
+    //     prioridad: 'alta' as const,
+    //     color: '#FF69B4'
+    // },
+    // {
+    //     codigo: 'TEMP_EXTREMA',
+    //     nombre: 'Temperatura Extrema',
+    //     descripcion: 'Temperatura fuera de rango extremo',
+    //     condicion: (l: any) => Number(l.temperatura_c) < 0 || Number(l.temperatura_c) > 40,
+    //     prioridad: 'alta' as const,
+    //     color: '#8B0000'
+    // },
     // {
     //     codigo: 'SONIDO_EXTREMO',
     //     nombre: 'Nivel de Sonido Extremo',
@@ -126,69 +120,39 @@ const REGLAS_BASE = [
     //     prioridad: 'alta' as const,
     //     color: '#4B0082'
     // },
-    // ⚠️ DESACTIVADO: No hay sensor de peso
     // {
-    //     codigo: 'PESO_CRITICO',
-    //     nombre: 'Peso Crítico',
-    //     descripcion: 'Peso extremadamente bajo',
-    //     condicion: (l: any) => Number(l.peso_kg) < 1,
+    //     codigo: 'AMENAZA_INCENDIO',
+    //     nombre: 'Posible Incendio Detectado',
+    //     descripcion: 'Detección de calor extremo y sequedad compatible con fuego cercano',
+    //     condicion: (l: any, p: any) =>
+    //         Number(l.temperatura_c) >= 45 ||
+    //         (p && Number(l.temperatura_c) >= Number(p.temperatura_c) + 5 && Number(l.humedad_h) < 15),
     //     prioridad: 'alta' as const,
-    //     color: '#2F4F4F'
+    //     color: '#FF0000'
     // },
-    // ⚠️ DESACTIVADO: No hay sensor de peso (depende del peso para detectar enjambrazón)
     // {
-    //     codigo: 'ENJAMBRAZON',
-    //     nombre: 'Posible Enjambrazón',
-    //     descripcion: 'Pérdida súbita de peso detectada (posible salida de enjambre)',
+    //     codigo: 'ROBO_VANDALISMO',
+    //     nombre: 'Posible Robo o Vandalismo',
+    //     descripcion: 'Actividad física o pérdida de peso inusual en horario nocturno',
     //     condicion: (l: any, p: any) => {
-    //         const perdidaPeso = p && l.peso_kg && p.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 2);
-    //         if (!perdidaPeso) return false;
     //         const hora = new Date().getHours();
-    //         const minutos = new Date().getMinutes();
-    //         const horaDecimal = hora + (minutos / 60);
-    //         const esHorarioPico = horaDecimal >= 11 && horaDecimal <= 16.5;
-    //         return perdidaPeso;
+    //         const esNocturno = hora >= 21 || hora <= 6;
+    //         if (!esNocturno) return false;
+    //         const perdidaPeso = p && p.peso_kg && l.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 3);
+    //         const ruidoInusual = Number(l.sonido_hz) > 400;
+    //         return perdidaPeso || ruidoInusual;
     //     },
     //     prioridad: 'alta' as const,
-    //     color: '#FF4500'
-    // },
-
-    {
-        codigo: 'AMENAZA_INCENDIO',
-        nombre: 'Posible Incendio Detectado',
-        descripcion: 'Detección de calor extremo y sequedad compatible con fuego cercano',
-        condicion: (l: any, p: any) =>
-            Number(l.temperatura_c) >= 45 ||
-            (p && Number(l.temperatura_c) >= Number(p.temperatura_c) + 5 && Number(l.humedad_h) < 15),
-        prioridad: 'alta' as const,
-        color: '#FF0000'
-    },
-    {
-        codigo: 'ROBO_VANDALISMO',
-        nombre: 'Posible Robo o Vandalismo',
-        descripcion: 'Actividad física o pérdida de peso inusual en horario nocturno',
-        condicion: (l: any, p: any) => {
-            const hora = new Date().getHours();
-            const esNocturno = hora >= 21 || hora <= 6;
-            if (!esNocturno) return false;
-
-            // Caso 1: Pérdida significativa de peso nocturna (> 3kg)
-            const perdidaPeso = p && p.peso_kg && l.peso_kg && (Number(p.peso_kg) - Number(l.peso_kg) >= 3);
-            // Caso 2: Ruido fuerte nocturno (> 400Hz) indica manipulación
-            const ruidoInusual = Number(l.sonido_hz) > 400;
-
-            return perdidaPeso || ruidoInusual;
-        },
-        prioridad: 'alta' as const,
-        color: '#000000'
-    }
+    //     color: '#000000'
+    // }
 ];
 
-// 🔊 Reglas acústicas avanzadas
+// 🔊 Reglas acústicas avanzadas - SOLO ESTAS 3 ESTÁN ACTIVAS
 const REGLAS_ACUSTICAS = [
+    // ✅ ACTIVA: Posible Orfandad Detectada
     {
         codigo: 'ORFANDAD_ACUSTICA',
-        nombre: 'Riesgo de Orfandad',
+        nombre: 'Posible Orfandad Detectada',
         descripcion: 'Vigor Crítico: Posible ausencia de reina detectada por patrón acústico < 180Hz.',
         condicion: (l: any) =>
             Number(l.sonido_hz) > 0 &&
@@ -196,6 +160,7 @@ const REGLAS_ACUSTICAS = [
         prioridad: 'alta' as const,
         color: '#B22222'
     },
+    // ✅ ACTIVA: Alta Probabilidad de Enjambrazón
     {
         codigo: 'PRE_ENJAMBRAZON_ACUSTICA',
         nombre: 'Alta Probabilidad de Enjambrazón',
@@ -209,16 +174,18 @@ const REGLAS_ACUSTICAS = [
         prioridad: 'media' as const,
         color: '#FFA500'
     },
-    {
-        codigo: 'ENJAMBRAZON_ACUSTICA_CONFIRMADA',
-        nombre: 'Alerta de Enjambrazón',
-        descripcion: 'Vigor Excedente: Sonido > 400Hz y Alza de T° interna (>36°C).',
-        condicion: (l: any) =>
-            Number(l.sonido_hz) >= 400 &&
-            Number(l.temperatura_c) > 36,
-        prioridad: 'alta' as const,
-        color: '#FF4500'
-    },
+    // ⚠️ DESACTIVADO: Redundante con PRE_ENJAMBRAZON_ACUSTICA
+    // {
+    //     codigo: 'ENJAMBRAZON_ACUSTICA_CONFIRMADA',
+    //     nombre: 'Alerta de Enjambrazón',
+    //     descripcion: 'Vigor Excedente: Sonido > 400Hz y Alza de T° interna (>36°C).',
+    //     condicion: (l: any) =>
+    //         Number(l.sonido_hz) >= 400 &&
+    //         Number(l.temperatura_c) > 36,
+    //     prioridad: 'alta' as const,
+    //     color: '#FF4500'
+    // },
+    // ✅ ACTIVA: Estrés Defensivo o Ataque Externo
     {
         codigo: 'ATAQUE_O_ESTRES',
         nombre: 'Estrés Defensivo o Ataque Externo',
@@ -232,6 +199,10 @@ const REGLAS_ACUSTICAS = [
     }
 ];
 
+// 🎯 SOLO 3 ALERTAS ACTIVAS POR SOLICITUD DEL JEFE:
+// 1. Alta Probabilidad de Enjambrazón (PRE_ENJAMBRAZON_ACUSTICA)
+// 2. Posible Orfandad Detectada (ORFANDAD_ACUSTICA)
+// 3. Estrés Defensivo o Ataque Externo (ATAQUE_O_ESTRES)
 const REGLAS = [
     ...REGLAS_BASE,
     ...REGLAS_ACUSTICAS

@@ -10,6 +10,21 @@ import {
   getAlertasByFecha,
 } from '../services/alertaQueryService';
 
+// 🎯 SOLO MOSTRAR ESTAS 3 ALERTAS (las demás están desactivadas)
+const CODIGOS_ALERTAS_PERMITIDAS = [
+  'ORFANDAD_ACUSTICA',      // Posible Orfandad Detectada
+  'PRE_ENJAMBRAZON_ACUSTICA', // Alta Probabilidad de Enjambrazón
+  'ATAQUE_O_ESTRES',        // Estrés Defensivo o Ataque Externo
+];
+
+// Función helper para filtrar alertas
+const filtrarAlertasPermitidas = (alertas: any[]) => {
+  return alertas.filter(alerta =>
+    alerta.tipo_alerta?.codigo &&
+    CODIGOS_ALERTAS_PERMITIDAS.includes(alerta.tipo_alerta.codigo)
+  );
+};
+
 // 📊 Obtener todas las alertas de una colmena
 export async function getAlertasColmenaHandler(req: AuthRequest, res: Response) {
   try {
@@ -20,7 +35,8 @@ export async function getAlertasColmenaHandler(req: AuthRequest, res: Response) 
       return res.status(400).json({ success: false, error: 'colmenaId requerido' });
     }
 
-    const alertas = await getAlertasByColmena(colmenaId, Number(limit) || 50);
+    const alertasRaw = await getAlertasByColmena(colmenaId, Number(limit) || 50);
+    const alertas = filtrarAlertasPermitidas(alertasRaw);
 
     res.status(200).json({
       success: true,
@@ -42,7 +58,8 @@ export async function getAlertasEmpresaHandler(req: AuthRequest, res: Response) 
     const { limit } = req.query;
     const empresaId = req.user!.id_empresa;
 
-    const alertas = await getAlertasByEmpresa(empresaId, Number(limit) || 100);
+    const alertasRaw = await getAlertasByEmpresa(empresaId, Number(limit) || 100);
+    const alertas = filtrarAlertasPermitidas(alertasRaw);
 
     res.status(200).json({
       success: true,
@@ -67,7 +84,8 @@ export async function getAlertasPendientesColmenaHandler(req: AuthRequest, res: 
       return res.status(400).json({ success: false, error: 'colmenaId requerido' });
     }
 
-    const alertas = await getAlertasPendientesByColmena(colmenaId);
+    const alertasRaw = await getAlertasPendientesByColmena(colmenaId);
+    const alertas = filtrarAlertasPermitidas(alertasRaw);
 
     res.status(200).json({
       success: true,
@@ -88,7 +106,8 @@ export async function getAlertasPendientesEmpresaHandler(req: AuthRequest, res: 
   try {
     const empresaId = req.user!.id_empresa;
 
-    const alertas = await getAlertasPendientesByEmpresa(empresaId);
+    const alertasRaw = await getAlertasPendientesByEmpresa(empresaId);
+    const alertas = filtrarAlertasPermitidas(alertasRaw);
 
     res.status(200).json({
       success: true,
@@ -212,7 +231,8 @@ export async function getAlertasByFechaHandler(req: AuthRequest, res: Response) 
       });
     }
 
-    const alertas = await getAlertasByFecha(empresaId, fechaInicio, fechaFin);
+    const alertasRaw = await getAlertasByFecha(empresaId, fechaInicio, fechaFin);
+    const alertas = filtrarAlertasPermitidas(alertasRaw);
 
     res.status(200).json({
       success: true,
