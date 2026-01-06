@@ -4,7 +4,8 @@ import {
   getAllEmpresasHandler,
   getEmpresaByIdHandler,
   createAdminHandler,
-  createUsuarioHandler
+  createUsuarioHandler,
+  deleteEmpresaHandler
 } from '../controllers/empresaController';
 
 const router = express.Router();
@@ -77,8 +78,26 @@ router.get('/empresas', getAllEmpresasHandler);
  *     responses:
  *       200:
  *         description: Detalle de la empresa
+ *   delete:
+ *     summary: Eliminar una empresa por ID (solo sistema)
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: path
+ *         name: empresaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Empresa eliminada exitosamente
+ *       404:
+ *         description: Empresa no encontrada
+ *       409:
+ *         description: No se puede eliminar, tiene datos relacionados
  */
 router.get('/empresas/:empresaId', getEmpresaByIdHandler);
+router.delete('/empresas/:empresaId', deleteEmpresaHandler);
 
 /**
  * @swagger

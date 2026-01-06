@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
-import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createUsuarioWithRole } from '../services/empresaService';
-import PLANS from '../config/plans';
+import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createUsuarioWithRole, deleteEmpresa } from '../services/empresaService';
 
 export async function createEmpresaHandler(req: Request, res: Response) {
   try {
@@ -54,13 +53,13 @@ export async function getAllEmpresasHandler(req: Request, res: Response) {
 export async function getEmpresaByIdHandler(req: Request, res: Response) {
   try {
     const empresaId = req.params.empresaId;
-    
+
     if (!empresaId || empresaId.length < 10) {
       return res.status(400).json({ success: false, message: 'empresaId inválido' });
     }
 
     const empresa = await getEmpresaById(empresaId);
-    
+
     if (!empresa) {
       return res.status(404).json({ success: false, message: 'Empresa no encontrada' });
     }
@@ -135,3 +134,43 @@ export async function onboardEmpresaHandler(req: Request, res: Response) {
   // Implementar cuando estén disponibles todos los servicios necesarios
 }
 */
+
+/**
+ * Elimina una empresa por su ID
+ * Solo el sistema puede eliminar empresas (requiere autenticación de sistema)
+ */
+export async function deleteEmpresaHandler(req: Request, res: Response) {
+  try {
+    const empresaId = req.params.empresaId;
+
+    if (!empresaId || empresaId.length < 10) {
+      return res.status(400).json({ success: false, message: 'empresaId inválido' });
+    }
+
+    // Verificar que la empresa existe antes de eliminar
+    const empresaExistente = await getEmpresaById(empresaId);
+    if (!empresaExistente) {
+      return res.status(404).json({ success: false, message: 'Empresa no encontrada' });
+    }
+
+    const empresaEliminada = await deleteEmpresa(empresaId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Empresa eliminada exitosamente',
+      data: empresaEliminada
+    });
+  } catch (error: any) {
+    console.error('Error al eliminar empresa:', error);
+
+    // Manejar error de constraint de FK (empresa tiene datos relacionados)
+    if (error?.code === '23503') {
+      return res.status(409).json({
+        success: false,
+        message: 'No se puede eliminar la empresa porque tiene datos relacionados (usuarios, apiarios, etc.)'
+      });
+    }
+
+    return res.status(500).json({ success: false, message: error?.message || 'Error interno al eliminar empresa' });
+  }
+}
