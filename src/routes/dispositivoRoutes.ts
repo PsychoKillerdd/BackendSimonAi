@@ -6,6 +6,7 @@ import {
   getAllDispositivosHandler,
   getDispositivosByEmpresaHandler,
   getDispositivosSinAsignarHandler,
+  getDispositivosDisponiblesHandler,
   updateDispositivoEstadoHandler,
   asignarDispositivoHandler,
 } from '../controllers/dispositivoController';
@@ -176,5 +177,22 @@ router.patch('/dispositivos/:dispositivoId/estado', updateDispositivoEstadoHandl
  *         description: Dispositivo asignado
  */
 router.patch('/dispositivos/:dispositivoId/asignar', asignarDispositivoHandler);
+
+/**
+ * @swagger
+ * /api/dispositivos/disponibles/para-colmena:
+ *   get:
+ *     summary: Obtener dispositivos disponibles para asignar a una colmena
+ *     description: Devuelve dispositivos que pertenecen a la empresa pero NO están asignados a ninguna colmena
+ *     tags: [Dispositivos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de dispositivos disponibles
+ *       401:
+ *         description: No autorizado
+ */
+router.get('/dispositivos/disponibles/para-colmena', authenticateToken, getDispositivosDisponiblesHandler);
 
 export default router;

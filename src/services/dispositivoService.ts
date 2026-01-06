@@ -1,6 +1,6 @@
 import { db } from '../config/db';
-import { dispositivo_simonia } from '../config/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { dispositivo_simonia, colmena } from '../config/db/schema';
+import { eq, desc, notInArray, and } from 'drizzle-orm';
 
 export type DispositivoInput = {
   codigo_unico: string;
@@ -79,4 +79,40 @@ export async function getDispositivosSinAsignar() {
     .where(eq(dispositivo_simonia.id_propietario, null))
     .orderBy(desc(dispositivo_simonia.fecha_registro));
   return result;
+}
+
+/**
+ * Obtiene dispositivos disponibles para asignar a una colmena:
+ * - Deben pertenecer a la empresa (id_propietario = empresaId)
+ * - NO deben estar asignados a ninguna colmena
+ */
+export async function getDispositivosDisponiblesParaColmena(empresaId: string) {
+  // Primero obtener todos los IDs de dispositivos que ya están en colmenas
+  const colmenasConDispositivo = await db
+    .select({ id_dispositivo: colmena.id_dispositivo })
+    .from(colmena)
+    .where(eq(colmena.id_empresa, empresaId));
+
+  const dispositivosEnColmenas = colmenasConDispositivo
+    .map(c => c.id_dispositivo)
+    .filter((id): id is string => id !== null);
+
+  // Si hay dispositivos en colmenas, excluirlos
+  if (dispositivosEnColmenas.length > 0) {
+    return await db
+      .select()
+      .from(dispositivo_simonia)
+      .where(and(
+        eq(dispositivo_simonia.id_propietario, empresaId),
+        notInArray(dispositivo_simonia.id, dispositivosEnColmenas)
+      ))
+      .orderBy(desc(dispositivo_simonia.fecha_registro));
+  }
+
+  // Si no hay dispositivos en colmenas, devolver todos los de la empresa
+  return await db
+    .select()
+    .from(dispositivo_simonia)
+    .where(eq(dispositivo_simonia.id_propietario, empresaId))
+    .orderBy(desc(dispositivo_simonia.fecha_registro));
 }

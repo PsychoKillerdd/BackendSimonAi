@@ -6,6 +6,7 @@ import {
   getAllDispositivos,
   getDispositivosByEmpresa,
   getDispositivosSinAsignar,
+  getDispositivosDisponiblesParaColmena,
   updateDispositivoEstado,
   asignarDispositivoAEmpresa,
   type DispositivoInput,
@@ -42,16 +43,16 @@ export async function createDispositivoHandler(req: Request, res: Response) {
     });
   } catch (error: any) {
     console.error('Error creando dispositivo:', error);
-    
+
     // Detectar error de código duplicado
     if (error?.code === '23505' || error?.message?.includes('unique') || error?.message?.includes('duplicate')) {
-      return res.status(409).json({ 
-        success: false, 
+      return res.status(409).json({
+        success: false,
         error: 'El código único del dispositivo ya existe',
         field: 'codigo_unico'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: error.message || 'Error al crear dispositivo',
@@ -145,14 +146,14 @@ export async function getAllDispositivosHandler(req: Request, res: Response) {
 export async function getDispositivosByEmpresaHandler(req: Request, res: Response) {
   try {
     const { id_empresa } = req.query;
-    
+
     if (!id_empresa) {
       return res.status(400).json({
         success: false,
         error: 'Campo requerido: id_empresa'
       });
     }
-    
+
     const dispositivos = await getDispositivosByEmpresa(id_empresa as string);
 
     res.status(200).json({
@@ -255,6 +256,31 @@ export async function getDispositivosSinAsignarHandler(req: Request, res: Respon
     res.status(500).json({
       success: false,
       error: error.message || 'Error al obtener dispositivos',
+    });
+  }
+}
+
+/**
+ * Obtiene dispositivos disponibles para asignar a una colmena
+ * (pertenecen a la empresa pero no están asignados a ninguna colmena)
+ */
+export async function getDispositivosDisponiblesHandler(req: AuthRequest, res: Response) {
+  try {
+    const id_empresa = req.user!.id_empresa;
+
+    const dispositivos = await getDispositivosDisponiblesParaColmena(id_empresa);
+
+    res.status(200).json({
+      success: true,
+      data: dispositivos,
+      count: dispositivos.length,
+      message: 'Dispositivos disponibles para asignar a colmenas'
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo dispositivos disponibles:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error al obtener dispositivos disponibles',
     });
   }
 }
