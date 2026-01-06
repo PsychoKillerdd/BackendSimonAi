@@ -186,8 +186,10 @@ export async function getResumenAlertasHandler(req: AuthRequest, res: Response) 
       if (estado === 'pendiente') {
         resumenFormateado.pendientes[prioridad as keyof typeof resumenFormateado.pendientes] = total;
         resumenFormateado.pendientes.total += total;
-      } else if (estado === 'atendida') {
-        resumenFormateado.atendidas[prioridad as keyof typeof resumenFormateado.atendidas] = total;
+      } else if (estado === 'atendida' || estado === 'resuelta') {
+        // Contar tanto 'atendida' como 'resuelta' como atendidas
+        const prioridadActual = resumenFormateado.atendidas[prioridad as keyof typeof resumenFormateado.atendidas] || 0;
+        resumenFormateado.atendidas[prioridad as keyof typeof resumenFormateado.atendidas] = prioridadActual + total;
         resumenFormateado.atendidas.total += total;
       }
 
