@@ -101,15 +101,17 @@ export async function createColmenaHandler(req: AuthRequest, res: Response) {
   try {
     const {
       nombre_colmena,
+      tipo_colmena,
       id_apiario_actual,
       id_dispositivo,
       fecha_instalacion,
     } = req.body;
 
-    if (!nombre_colmena || !id_apiario_actual) {
+
+    if (!nombre_colmena || !id_apiario_actual || !tipo_colmena) {
       return res.status(400).json({
         success: false,
-        error: 'Campos requeridos: nombre_colmena, id_apiario_actual',
+        error: 'Campos requeridos: nombre_colmena, id_apiario_actual, tipo_colmena'
       });
     }
 
@@ -119,6 +121,7 @@ export async function createColmenaHandler(req: AuthRequest, res: Response) {
       nombre_colmena,
       id_apiario_actual,
       id_dispositivo,
+      tipo_colmena,
       fecha_instalacion,
     };
 
