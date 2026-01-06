@@ -51,14 +51,15 @@ const REGLAS_BASE = [
         prioridad: 'media' as const,
         color: '#FFA500'
     },
-    {
-        codigo: 'SONIDO_ALTO',
-        nombre: 'Nivel Ruido Alto',
-        descripcion: 'Posible perturbación o ataque (sonido > 500Hz)',
-        condicion: (l: any) => Number(l.sonido_hz) > 500,
-        prioridad: 'alta' as const,
-        color: '#800080'
-    },
+    // ⚠️ DESACTIVADO: Redundante con ATAQUE_O_ESTRES que es más específica
+    // {
+    //     codigo: 'SONIDO_ALTO',
+    //     nombre: 'Nivel Ruido Alto',
+    //     descripcion: 'Posible perturbación o ataque (sonido > 500Hz)',
+    //     condicion: (l: any) => Number(l.sonido_hz) > 500,
+    //     prioridad: 'alta' as const,
+    //     color: '#800080'
+    // },
     {
         codigo: 'SONIDO_BAJO',
         nombre: 'Nivel Ruido Bajo',
@@ -116,14 +117,15 @@ const REGLAS_BASE = [
         prioridad: 'alta' as const,
         color: '#8B0000'
     },
-    {
-        codigo: 'SONIDO_EXTREMO',
-        nombre: 'Nivel de Sonido Extremo',
-        descripcion: 'Nivel de sonido extremadamente alto',
-        condicion: (l: any) => Number(l.sonido_hz) > 1000,
-        prioridad: 'alta' as const,
-        color: '#4B0082'
-    },
+    // ⚠️ DESACTIVADO: Redundante con ATAQUE_O_ESTRES que es más específica
+    // {
+    //     codigo: 'SONIDO_EXTREMO',
+    //     nombre: 'Nivel de Sonido Extremo',
+    //     descripcion: 'Nivel de sonido extremadamente alto',
+    //     condicion: (l: any) => Number(l.sonido_hz) > 1000,
+    //     prioridad: 'alta' as const,
+    //     color: '#4B0082'
+    // },
     // ⚠️ DESACTIVADO: No hay sensor de peso
     // {
     //     codigo: 'PESO_CRITICO',
