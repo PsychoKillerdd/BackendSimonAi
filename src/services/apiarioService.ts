@@ -152,3 +152,27 @@ export async function getColmenasByEmpresa(empresaId: string) {
     dispositivo_simonia: row.dispositivo_simonia
   }));
 }
+
+export async function getColmenaById(colmenaId: string) {
+  const rows = await db
+    .select({
+      colmena: colmena,
+      apiario: apiario,
+      dispositivo_simonia: dispositivo_simonia,
+    })
+    .from(colmena)
+    .leftJoin(apiario, eq(colmena.id_apiario_actual, apiario.id))
+    .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
+    .where(eq(colmena.id, colmenaId));
+
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    ...row.colmena,
+    apiario: row.apiario,
+    dispositivo_simonia: row.dispositivo_simonia,
+  };
+}

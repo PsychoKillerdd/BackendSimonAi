@@ -5,6 +5,7 @@ import {
   getApiarioByIdHandler,
   createColmenaHandler,
   getColmenasHandler,
+  getColmenaByIdHandler,
 } from '../controllers/apiarioController';
 import { authenticateToken, requireAdmin } from '../middlewares/authMiddleware';
 
@@ -132,5 +133,28 @@ router.get('/apiarios/:apiarioId', authenticateToken, getApiarioByIdHandler);
  */
 router.post('/colmenas', authenticateToken, requireAdmin, createColmenaHandler);
 router.get('/colmenas', authenticateToken, getColmenasHandler);
+
+/**
+ * @swagger
+ * /api/colmenas/{colmenaId}:
+ *   get:
+ *     summary: Obtener detalle de una colmena
+ *     tags: [Colmenas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: colmenaId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalle de la colmena
+ *       404:
+ *         description: Colmena no encontrada
+ */
+router.get('/colmenas/:colmenaId', authenticateToken, getColmenaByIdHandler);
+
 
 export default router;

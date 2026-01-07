@@ -6,6 +6,7 @@ import {
   createColmena,
   getColmenasByApiario,
   getColmenasByEmpresa,
+  getColmenaById,
   type ApiarioInput,
   type ColmenaInput,
 } from '../services/apiarioService';
@@ -163,6 +164,39 @@ export async function getColmenasHandler(req: AuthRequest, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Error al obtener colmenas',
+    });
+  }
+}
+
+export async function getColmenaByIdHandler(req: Request, res: Response) {
+  try {
+    const { colmenaId } = req.params;
+
+    if (!colmenaId) {
+      return res.status(400).json({
+        success: false,
+        error: 'colmenaId es requerido',
+      });
+    }
+
+    const colmena = await getColmenaById(colmenaId);
+
+    if (!colmena) {
+      return res.status(404).json({
+        success: false,
+        error: 'Colmena no encontrada',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: colmena,
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo colmena por ID:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error al obtener colmena',
     });
   }
 }
