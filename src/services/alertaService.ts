@@ -17,13 +17,34 @@ const getTemporadaChile = () => {
     return 'VERANO';
 };
 
+// 🐝 CONFIGURACIÓN TÉCNICA - ITERACIÓN II
+const CONFIG_AUDIO = {
+    BAND_NORMAL_MIN: 200,
+    BAND_NORMAL_MAX: 300,
+    BAND_WARBLE_MIN: 165,
+    BAND_WARBLE_MAX: 285,
+    BAND_PIPING_MIN: 350,
+    BAND_PIPING_MAX: 550,
+    BAND_HISS_MIN: 600, // Ajustado por filtro paso-banda 100-600Hz
+};
+
+const CONFIG_AMBIENTAL = {
+    TEMP_OPTIMA_MIN: 32.0,
+    TEMP_OPTIMA_MAX: 36.0,
+    HUM_CRITICA: 80.0
+};
+
+const TEMPORALIDAD = {
+    PERSISTENCIA_ORFANDAD: 4, // 4 muestras para confirmar orfandad
+};
+
 type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
 
 type Regla = {
     codigo: string;
     nombre: string;
     descripcion: string;
-    condicion: (l: any, p?: any) => boolean;
+    condicion: (l: any, p?: any, h?: any[]) => boolean;
     prioridad: Prioridad;
     color: string;
 };
@@ -149,55 +170,85 @@ const REGLAS_BASE: Regla[] = [
 
 // 🔊 Reglas acústicas avanzadas - SOLO ESTAS 3 ESTÁN ACTIVAS
 const REGLAS_ACUSTICAS = [
-    // ✅ ACTIVA: Posible Orfandad Detectada
+    // ✅ ACTIVA: Posible Orfandad Detectada (Warble)
     {
         codigo: 'ORFANDAD_ACUSTICA',
         nombre: 'Posible Orfandad Detectada',
-        descripcion: 'Vigor Crítico: Posible ausencia de reina detectada por patrón acústico < 180Hz.',
-        condicion: (l: any) =>
-            Number(l.sonido_hz) > 0 &&
-            Number(l.sonido_hz) < 180,
+        descripcion: 'Vigor Crítico: Patrón acústico de "rugido" (Warble) entre 165-285Hz sostenido (>1h), indicando falta de reina.',
+        condicion: (l: any, p: any, history: any[]) => {
+            if (!history || history.length < TEMPORALIDAD.PERSISTENCIA_ORFANDAD) return false;
+            // Verificar si las últimas N lecturas están en rango de orfandad
+            return history.slice(0, TEMPORALIDAD.PERSISTENCIA_ORFANDAD).every(h =>
+                Number(h.sonido_hz) >= CONFIG_AUDIO.BAND_WARBLE_MIN &&
+                Number(h.sonido_hz) <= CONFIG_AUDIO.BAND_WARBLE_MAX
+            );
+        },
         prioridad: 'alta' as const,
         color: '#B22222'
     },
-    // ✅ ACTIVA: Alta Probabilidad de Enjambrazón
+    // ✅ ACTIVA: Alta Probabilidad de Enjambrazón (Éxodo)
     {
         codigo: 'PRE_ENJAMBRAZON_ACUSTICA',
         nombre: 'Alta Probabilidad de Enjambrazón',
-        descripcion: 'Incremento acústico progresivo compatible con preparación de enjambre',
+        descripcion: 'Vigor Excedente: Salto súbito de frecuencia (400-550Hz) y temperatura (>35°C) compatible con salida inminente de enjambre.',
         condicion: (l: any, p: any) =>
             p &&
-            Number(l.sonido_hz) >= 180 &&
-            Number(l.sonido_hz) <= 350 &&
-            Number(l.sonido_hz) > Number(p.sonido_hz) &&
-            (!l.peso_kg || !p.peso_kg || Math.abs(Number(l.peso_kg) - Number(p.peso_kg)) < 1),
-        prioridad: 'media' as const,
+            Number(l.sonido_hz) >= CONFIG_AUDIO.BAND_PIPING_MIN &&
+            Number(l.sonido_hz) <= CONFIG_AUDIO.BAND_PIPING_MAX &&
+            Number(p.sonido_hz) < CONFIG_AUDIO.BAND_NORMAL_MAX &&
+            Number(l.temperatura_c) > 35,
+        prioridad: 'critica' as const,
         color: '#FFA500'
     },
-    // ⚠️ DESACTIVADO: Redundante con PRE_ENJAMBRAZON_ACUSTICA
-    // {
-    //     codigo: 'ENJAMBRAZON_ACUSTICA_CONFIRMADA',
-    //     nombre: 'Alerta de Enjambrazón',
-    //     descripcion: 'Vigor Excedente: Sonido > 400Hz y Alza de T° interna (>36°C).',
-    //     condicion: (l: any) =>
-    //         Number(l.sonido_hz) >= 400 &&
-    //         Number(l.temperatura_c) > 36,
-    //     prioridad: 'alta' as const,
-    //     color: '#FF4500'
-    // },
-    // ✅ ACTIVA: Estrés Defensivo o Ataque Externo
+    // ✅ ACTIVA: Estrés Defensivo o Ataque Externo (Hissing)
     {
         codigo: 'ATAQUE_O_ESTRES',
         nombre: 'Estrés Defensivo o Ataque Externo',
-        descripcion: 'Pico acústico agudo indica perturbación severa o ataque',
-        condicion: (l: any, p: any) =>
-            p &&
-            Number(l.sonido_hz) >= 700 &&
-            Number(l.sonido_hz) > Number(p.sonido_hz) * 1.5,
+        descripcion: 'Respuesta de "siseo" (Hissing) detectada por picos de espectro completo o fuera de rango normal (>600Hz).',
+        condicion: (l: any) =>
+            Number(l.sonido_hz) >= CONFIG_AUDIO.BAND_HISS_MIN,
         prioridad: 'alta' as const,
         color: '#8B0000'
     }
 ];
+
+/**
+ * 📊 Algoritmo Cálculo Índice de Vitalidad (IV)
+ * Basado en Documento Iteración II
+ */
+export function calculateVitalityIndex(l: any) {
+    let iv = 100;
+    const temp = Number(l.temperatura_c || 0);
+    const hum = Number(l.humedad_h || 0);
+    const hz = Number(l.sonido_hz || 0);
+
+    // 1. Penalización Térmica (Termorregulación)
+    if (temp < CONFIG_AMBIENTAL.TEMP_OPTIMA_MIN || temp > CONFIG_AMBIENTAL.TEMP_OPTIMA_MAX) {
+        if (temp < 30) {
+            iv -= (30 - temp) * 2;
+        } else if (temp > 37) {
+            iv -= (temp - 37) * 5;
+        } else {
+            iv -= 10; // Fuera de rango óptimo pero no crítico
+        }
+    }
+
+    // 2. Penalización Higrométrica
+    if (hum >= CONFIG_AMBIENTAL.HUM_CRITICA) {
+        iv -= 15;
+    }
+
+    // 3. Penalización Acústica
+    if (hz >= CONFIG_AUDIO.BAND_WARBLE_MIN && hz <= CONFIG_AUDIO.BAND_WARBLE_MAX) {
+        iv -= 40; // Orfandad detectada
+    } else if (hz >= CONFIG_AUDIO.BAND_HISS_MIN) {
+        iv -= 20; // Estrés detectado
+    } else if (hz > 0 && hz < 100) {
+        iv -= 50; // Baja actividad crítica
+    }
+
+    return Math.max(0, Math.min(100, Math.round(iv)));
+}
 
 // 🎯 SOLO 3 ALERTAS ACTIVAS POR SOLICITUD DEL JEFE:
 // 1. Alta Probabilidad de Enjambrazón (PRE_ENJAMBRAZON_ACUSTICA)
@@ -214,24 +265,24 @@ export async function checkAndCreateAlerts(
     colmenaId: string
 ) {
     try {
-        // Buscar la lectura anterior para reglas que comparan datos (como enjambrazón)
-        const lecturasAnteriores = await db
+        // Buscar las últimas lecturas para análisis de persistencia y comparativa
+        const lecturasPrevias = await db
             .select()
             .from(lectura_sensor)
-            .where(
-                and(
-                    eq(lectura_sensor.id_colmena, colmenaId),
-                    sql`${lectura_sensor.id} != ${lectura.id}`
-                )
-            )
+            .where(eq(lectura_sensor.id_colmena, colmenaId))
             .orderBy(desc(lectura_sensor.fecha_registro))
-            .limit(1);
+            .limit(10);
 
-        const lecturaAnterior = lecturasAnteriores[0] || null;
+        const lecturaAnterior = lecturasPrevias[1] || null; // La 0 es la actual si ya se guardó, pero aquí le pasamos la 'lectura' del argumento
+        // Filtramos para asegurar que no incluimos la lectura actual en el historial previo si es necesario
+        const historialParaReglas = lecturasPrevias.filter(lp => lp.id !== lectura.id);
+
         const temporada = getTemporadaChile();
+        const ivActual = calculateVitalityIndex(lectura);
+        console.log(`🐝 IV CALCULADO para colmena ${colmenaId}: ${ivActual}%`);
 
         for (const regla of REGLAS) {
-            if (regla.condicion(lectura, lecturaAnterior)) {
+            if (regla.condicion(lectura, lecturaAnterior, historialParaReglas)) {
                 // 🚀 AJUSTE DE PRIORIDAD ESTACIONAL
                 let prioridadFinal: Prioridad = regla.prioridad;
 
