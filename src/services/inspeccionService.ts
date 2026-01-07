@@ -22,7 +22,7 @@ export interface InspeccionInput {
     reservas_alimento?: string;
     comportamiento_abejas?: string;
     signos_enfermedad?: string;
-    observaciones: string;
+    observaciones?: string;
     recomendaciones?: string;
     acciones_correctivas?: string;
 }
