@@ -6,6 +6,10 @@ import {
   createColmenaHandler,
   getColmenasHandler,
   getColmenaByIdHandler,
+  updateApiarioHandler,
+  deleteApiarioHandler,
+  updateColmenaHandler,
+  deleteColmenaHandler,
 } from '../controllers/apiarioController';
 import { authenticateToken, requireAdmin } from '../middlewares/authMiddleware';
 
@@ -81,6 +85,8 @@ router.get('/apiarios', authenticateToken, getApiariosHandler);
  *         description: Detalle del apiario
  */
 router.get('/apiarios/:apiarioId', authenticateToken, getApiarioByIdHandler);
+router.patch('/apiarios/:apiarioId', authenticateToken, requireAdmin, updateApiarioHandler);
+router.delete('/apiarios/:apiarioId', authenticateToken, requireAdmin, deleteApiarioHandler);
 
 /**
  * @swagger
@@ -155,6 +161,8 @@ router.get('/colmenas', authenticateToken, getColmenasHandler);
  *         description: Colmena no encontrada
  */
 router.get('/colmenas/:colmenaId', authenticateToken, getColmenaByIdHandler);
+router.patch('/colmenas/:colmenaId', authenticateToken, requireAdmin, updateColmenaHandler);
+router.delete('/colmenas/:colmenaId', authenticateToken, requireAdmin, deleteColmenaHandler);
 
 
 export default router;

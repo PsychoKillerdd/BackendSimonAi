@@ -7,6 +7,10 @@ import {
   getColmenasByApiario,
   getColmenasByEmpresa,
   getColmenaById,
+  updateApiario,
+  deleteApiario,
+  updateColmena,
+  deleteColmena,
   type ApiarioInput,
   type ColmenaInput,
 } from '../services/apiarioService';
@@ -198,5 +202,49 @@ export async function getColmenaByIdHandler(req: Request, res: Response) {
       success: false,
       error: error.message || 'Error al obtener colmena',
     });
+  }
+}
+
+export async function updateApiarioHandler(req: AuthRequest, res: Response) {
+  try {
+    const { apiarioId } = req.params;
+    if (!apiarioId) return res.status(400).json({ success: false, error: 'apiarioId requerido' });
+    const result = await updateApiario(apiarioId, req.body);
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+export async function deleteApiarioHandler(req: AuthRequest, res: Response) {
+  try {
+    const { apiarioId } = req.params;
+    if (!apiarioId) return res.status(400).json({ success: false, error: 'apiarioId requerido' });
+    const result = await deleteApiario(apiarioId);
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+export async function updateColmenaHandler(req: AuthRequest, res: Response) {
+  try {
+    const { colmenaId } = req.params;
+    if (!colmenaId) return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    const result = await updateColmena(colmenaId, req.body);
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+export async function deleteColmenaHandler(req: AuthRequest, res: Response) {
+  try {
+    const { colmenaId } = req.params;
+    if (!colmenaId) return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    const result = await deleteColmena(colmenaId);
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
 }
