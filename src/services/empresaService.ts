@@ -208,7 +208,7 @@ export async function updateUsuario(usuarioId: string, payload: Partial<UsuarioI
   if (payload.tipo_usuario) updatePayload.tipo_usuario = payload.tipo_usuario.trim().toLowerCase();
   if (payload.telefono) updatePayload.telefono = payload.telefono.toString();
   if (payload.direccion) updatePayload.direccion = payload.direccion;
-  if (payload.foto_url) updatePayload.foto_url = payload.foto_url;
+  if (payload.foto_url !== undefined) updatePayload.foto_url = payload.foto_url;
 
   const userData = await db.update(usuario).set(updatePayload).where(eq(usuario.id, usuarioId)).returning();
 
