@@ -90,7 +90,8 @@ export async function createAdminHandler(req: Request, res: Response) {
       nombre,
       correo,
       tipo_usuario: 'admin',
-      roleName: 'admin'
+      roleName: 'admin',
+      foto_url: body.foto_url
     };
 
     const result = await createUsuarioWithRole(empresaId, payload as any);

@@ -28,6 +28,7 @@ export const usuario = pgTable('usuario', {
   pais: text('pais').default('Chile'),
   rut: varchar('rut').unique(),
   telefono: varchar('telefono'),
+  foto_url: text('foto_url'), // ← NUEVA COLUMNA
   fecha_creacion: timestamp('fecha_creacion').defaultNow(),
 }, (table) => {
   return {

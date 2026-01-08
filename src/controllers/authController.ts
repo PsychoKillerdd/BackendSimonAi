@@ -56,7 +56,8 @@ export async function loginHandler(req: Request, res: Response) {
         id: usuario.id,
         correo: usuario.correo,
         nombre: usuario.nombre,
-        id_empresa: usuario.id_empresa
+        id_empresa: usuario.id_empresa,
+        foto_url: usuario.foto_url
       }
     });
   } catch (err: any) {
@@ -80,7 +81,8 @@ export async function registerHandler(req: Request, res: Response) {
       region,
       pais,
       rut,
-      telefono
+      telefono,
+      foto_url
     } = req.body;
 
     if (!nombre || !correo || !password) {
@@ -100,6 +102,7 @@ export async function registerHandler(req: Request, res: Response) {
       pais: typeof pais !== 'undefined' ? pais : undefined,
       rut: typeof rut !== 'undefined' ? rut : undefined,
       telefono: typeof telefono !== 'undefined' ? telefono : undefined,
+      foto_url: typeof foto_url !== 'undefined' ? foto_url : undefined,
     };
     if (roleName) payload.roleName = roleName;
 

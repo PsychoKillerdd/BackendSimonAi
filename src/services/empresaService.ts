@@ -79,6 +79,7 @@ export type UsuarioInput = {
   pais?: string;
   rut?: string;
   telefono?: number | string;
+  foto_url?: string; // ← NUEVA COLUMNA
   roleId?: string; // UUID en lugar de number
   roleName?: string; // optional role name to assign (eg 'admin'|'apicultor')
   password?: string; // optional plain password for initial creation
@@ -123,6 +124,7 @@ export async function createUsuarioWithRole(empresaId: string, payload: UsuarioI
     pais: payload.pais ?? null,
     rut: payload.rut ?? null,
     telefono: payload.telefono?.toString() ?? null,
+    foto_url: payload.foto_url ?? null,
     password: payload.password ? await (await import('./authService')).hashPassword(payload.password) : '',
   };
 
@@ -172,6 +174,7 @@ export async function getUsuariosByEmpresa(empresaId: string) {
       tipo_usuario: usuario.tipo_usuario,
       telefono: usuario.telefono,
       direccion: usuario.direccion,
+      foto_url: usuario.foto_url,
       fecha_creacion: usuario.fecha_creacion,
       rol: {
         id: rol.id,
@@ -205,6 +208,7 @@ export async function updateUsuario(usuarioId: string, payload: Partial<UsuarioI
   if (payload.tipo_usuario) updatePayload.tipo_usuario = payload.tipo_usuario.trim().toLowerCase();
   if (payload.telefono) updatePayload.telefono = payload.telefono.toString();
   if (payload.direccion) updatePayload.direccion = payload.direccion;
+  if (payload.foto_url) updatePayload.foto_url = payload.foto_url;
 
   const userData = await db.update(usuario).set(updatePayload).where(eq(usuario.id, usuarioId)).returning();
 
@@ -245,6 +249,7 @@ export async function getUsuarioById(usuarioId: string) {
       region: usuario.region,
       pais: usuario.pais,
       rut: usuario.rut,
+      foto_url: usuario.foto_url,
       fecha_nacimiento: usuario.fecha_nacimiento,
       fecha_creacion: usuario.fecha_creacion,
       id_empresa: usuario.id_empresa,
