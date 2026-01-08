@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
-import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createUsuarioWithRole, deleteEmpresa } from '../services/empresaService';
+import type { AuthRequest } from '../middlewares/authMiddleware';
+import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createUsuarioWithRole, deleteEmpresa, getUsuariosByEmpresa, deleteUsuario, updateUsuario } from '../services/empresaService';
 
 export async function createEmpresaHandler(req: Request, res: Response) {
   try {
@@ -100,15 +101,25 @@ export async function createAdminHandler(req: Request, res: Response) {
   }
 }
 
-export async function createUsuarioHandler(req: Request, res: Response) {
+export async function createUsuarioHandler(req: AuthRequest, res: Response) {
   try {
     const empresaId = req.params.empresaId;
     if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
+
+    // Permisos: Solo administradores pueden crear usuarios
+    if (!req.user || (req.user.tipo_usuario !== 'admin')) {
+      return res.status(403).json({ success: false, message: 'Solo los administradores pueden crear nuevos integrantes.' });
+    }
 
     const payload = req.body;
     if (!payload.nombre || !payload.correo || !payload.tipo_usuario) {
       return res.status(400).json({ success: false, message: 'nombre, correo y tipo_usuario son obligatorios' });
     }
+
+    // Role creation hierarchy:
+    // admin can create anyone.
+    // apicultor/etc shouldn't even reach here due to the check above,
+    // but we ensure it just in case.
 
     const result = await createUsuarioWithRole(empresaId, payload);
     return res.status(201).json({ success: true, data: result });
@@ -172,5 +183,76 @@ export async function deleteEmpresaHandler(req: Request, res: Response) {
     }
 
     return res.status(500).json({ success: false, message: error?.message || 'Error interno al eliminar empresa' });
+  }
+}
+export async function getUsuariosByEmpresaHandler(req: AuthRequest, res: Response) {
+  try {
+    const empresaId = req.params.empresaId;
+    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
+
+    // Verificar que el usuario pertenece a la empresa que intenta consultar
+    if (req.user?.id_empresa !== empresaId) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para ver los usuarios de esta empresa.' });
+    }
+
+    const usuarios = await getUsuariosByEmpresa(empresaId);
+    return res.status(200).json({ success: true, data: usuarios });
+  } catch (error: any) {
+    console.error('Error al obtener usuarios:', error);
+    return res.status(500).json({ success: false, message: error?.message || 'Error interno al obtener usuarios' });
+  }
+}
+
+export async function deleteUsuarioHandler(req: AuthRequest, res: Response) {
+  try {
+    const usuarioId = req.params.usuarioId;
+    if (!usuarioId) return res.status(400).json({ success: false, message: 'usuarioId inválido' });
+
+    // Permisos: Solo administradores pueden eliminar usuarios
+    if (!req.user || (req.user.tipo_usuario !== 'admin')) {
+      return res.status(403).json({ success: false, message: 'Solo los administradores pueden eliminar integrantes.' });
+    }
+
+    // Restricción: No se puede eliminar a sí mismo
+    if (req.user.id === usuarioId) {
+      return res.status(400).json({ success: false, message: 'No puedes eliminar tu propia cuenta desde este panel.' });
+    }
+
+    const result = await deleteUsuario(usuarioId);
+    return res.status(200).json({ success: true, message: 'Usuario eliminado', data: result });
+  } catch (error: any) {
+    console.error('Error al eliminar usuario:', error);
+    return res.status(500).json({ success: false, message: error?.message || 'Error interno al eliminar usuario' });
+  }
+}
+
+export async function updateUsuarioHandler(req: AuthRequest, res: Response) {
+  try {
+    const usuarioId = req.params.usuarioId;
+    if (!usuarioId) return res.status(400).json({ success: false, message: 'usuarioId inválido' });
+
+    // Permisos: Solo administradores pueden actualizar a otros, 
+    // o el mismo usuario puede actualizar su perfil básico.
+    const isSelfUpdate = req.user?.id === usuarioId;
+    const isAdmin = req.user?.tipo_usuario === 'admin';
+
+    if (!isAdmin && !isSelfUpdate) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para actualizar este usuario.' });
+    }
+
+    const payload = req.body;
+
+    // Si no es admin, no puede cambiarse el rol ni el tipo de usuario
+    if (!isAdmin && isSelfUpdate) {
+      delete payload.tipo_usuario;
+      delete payload.roleId;
+      delete payload.roleName;
+    }
+
+    const result = await updateUsuario(usuarioId, payload);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Error al actualizar usuario:', error);
+    return res.status(500).json({ success: false, message: error?.message || 'Error interno al actualizar usuario' });
   }
 }

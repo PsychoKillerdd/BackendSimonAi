@@ -53,8 +53,8 @@ const router = Router();
  *       200:
  *         description: Lista de dispositivos
  */
-router.post('/dispositivos', createDispositivoHandler);
-router.get('/dispositivos', getAllDispositivosHandler);
+router.post('/dispositivos', authenticateToken, requireAdmin, createDispositivoHandler);
+router.get('/dispositivos', authenticateToken, requireAdmin, getAllDispositivosHandler);
 
 /**
  * @swagger
@@ -66,7 +66,7 @@ router.get('/dispositivos', getAllDispositivosHandler);
  *       200:
  *         description: Lista de dispositivos libres
  */
-router.get('/dispositivos/sin-asignar/lista', getDispositivosSinAsignarHandler);
+router.get('/dispositivos/sin-asignar/lista', authenticateToken, requireAdmin, getDispositivosSinAsignarHandler);
 
 /**
  * @swagger
@@ -84,7 +84,7 @@ router.get('/dispositivos/sin-asignar/lista', getDispositivosSinAsignarHandler);
  *       200:
  *         description: Lista de dispositivos de la empresa
  */
-router.get('/dispositivos/empresa/mis-dispositivos', getDispositivosByEmpresaHandler);
+router.get('/dispositivos/empresa/mis-dispositivos', authenticateToken, getDispositivosByEmpresaHandler);
 
 /**
  * @swagger
@@ -102,7 +102,7 @@ router.get('/dispositivos/empresa/mis-dispositivos', getDispositivosByEmpresaHan
  *       200:
  *         description: Detalle del dispositivo
  */
-router.get('/dispositivos/:dispositivoId', getDispositivoByIdHandler);
+router.get('/dispositivos/:dispositivoId', authenticateToken, getDispositivoByIdHandler);
 
 /**
  * @swagger
@@ -120,7 +120,7 @@ router.get('/dispositivos/:dispositivoId', getDispositivoByIdHandler);
  *       200:
  *         description: Detalle del dispositivo
  */
-router.get('/dispositivos/codigo/:codigo', getDispositivoByCodigoHandler);
+router.get('/dispositivos/codigo/:codigo', authenticateToken, getDispositivoByCodigoHandler);
 
 /**
  * @swagger
@@ -148,7 +148,7 @@ router.get('/dispositivos/codigo/:codigo', getDispositivoByCodigoHandler);
  *       200:
  *         description: Estado actualizado
  */
-router.patch('/dispositivos/:dispositivoId/estado', updateDispositivoEstadoHandler);
+router.patch('/dispositivos/:dispositivoId/estado', authenticateToken, requireAdmin, updateDispositivoEstadoHandler);
 
 /**
  * @swagger
@@ -176,7 +176,7 @@ router.patch('/dispositivos/:dispositivoId/estado', updateDispositivoEstadoHandl
  *       200:
  *         description: Dispositivo asignado
  */
-router.patch('/dispositivos/:dispositivoId/asignar', asignarDispositivoHandler);
+router.patch('/dispositivos/:dispositivoId/asignar', authenticateToken, requireAdmin, asignarDispositivoHandler);
 
 /**
  * @swagger

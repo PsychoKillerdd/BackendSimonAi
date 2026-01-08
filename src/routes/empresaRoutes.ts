@@ -5,8 +5,12 @@ import {
   getEmpresaByIdHandler,
   createAdminHandler,
   createUsuarioHandler,
+  getUsuariosByEmpresaHandler,
+  deleteUsuarioHandler,
+  updateUsuarioHandler,
   deleteEmpresaHandler
 } from '../controllers/empresaController';
+import { authenticateToken } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
@@ -148,7 +152,39 @@ router.post('/empresas/:empresaId/create-admin', createAdminHandler);
  *       201:
  *         description: Usuario agregado
  */
-router.post('/empresas/:empresaId/usuarios', createUsuarioHandler);
+router.post('/empresas/:empresaId/usuarios', authenticateToken, createUsuarioHandler);
+router.get('/empresas/:empresaId/usuarios', authenticateToken, getUsuariosByEmpresaHandler);
+
+/**
+ * @swagger
+ * /api/usuarios/{usuarioId}:
+ *   delete:
+ *     summary: Eliminar un usuario por ID
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: path
+ *         name: usuarioId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario eliminado
+ *   patch:
+ *     summary: Actualizar un usuario por ID
+ *     tags: [Empresas]
+ *     parameters:
+ *       - in: path
+ *         name: usuarioId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario actualizado
+ */
+router.delete('/usuarios/:usuarioId', authenticateToken, deleteUsuarioHandler);
+router.patch('/usuarios/:usuarioId', authenticateToken, updateUsuarioHandler);
 
 // Nota: Los siguientes endpoints están deshabilitados porque requieren tablas que no están en el schema
 // - POST /api/empresas/:empresaId/suscripcion (requiere suscripcion_empresa)

@@ -1,5 +1,6 @@
 import express from 'express';
-import { loginHandler, registerHandler } from '../controllers/authController';
+import { loginHandler, registerHandler, getProfileHandler } from '../controllers/authController';
+import { authenticateToken } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
@@ -61,5 +62,21 @@ router.post('/login', loginHandler);
  *         description: Usuario creado
  */
 router.post('/register', registerHandler);
+
+/**
+ * @swagger
+ * /auth/profile:
+ *   get:
+ *     summary: Obtener perfil del usuario autenticado
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Datos del perfil
+ *       401:
+ *         description: No autorizado
+ */
+router.get('/profile', authenticateToken as any, getProfileHandler as any);
 
 export default router;
