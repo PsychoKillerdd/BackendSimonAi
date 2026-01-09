@@ -127,6 +127,21 @@ export async function getUltimaLecturaByColmena(colmenaId: string) {
   return rows[0] || null;
 }
 
+/**
+ * Obtiene la última lectura que tenga sonido válido (>= 100 Hz)
+ */
+export async function getUltimaLecturaValidaByColmena(colmenaId: string) {
+  const rows = await db
+    .select()
+    .from(lectura_sensor)
+    .where(
+      sql`${lectura_sensor.id_colmena} = ${colmenaId} AND ${lectura_sensor.sonido_hz} >= 100`
+    )
+    .orderBy(desc(lectura_sensor.fecha_registro))
+    .limit(1);
+  return rows[0] || null;
+}
+
 // 📊 FUNCIONES PARA GRÁFICOS (usa historial_lectura_sensor)
 
 /**

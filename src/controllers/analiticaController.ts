@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getUltimaLecturaByColmena, getLecturasByColmena } from '../services/lecturaService';
+import { getUltimaLecturaByColmena, getLecturasByColmena, getUltimaLecturaValidaByColmena } from '../services/lecturaService';
 import { calcularIndiceVitalidad, determinarZonaConfort, calcularNivelHomeostasis } from '../services/analiticaService';
 
 export async function getDashboardOperativoHandler(req: Request, res: Response) {
@@ -26,14 +26,26 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
         }
 
         // --- CÁLCULOS ---
+        // Si la última lectura general es inválida (<100Hz), intentamos usar la última válida para la analítica
+        let lecturaParaAnalitica = ultimaLectura;
+        let esDatoReal = true;
+
+        if (Number(ultimaLectura.sonido_hz || 0) < 100) {
+            const ultimaValida = await getUltimaLecturaValidaByColmena(colmenaId as string);
+            if (ultimaValida) {
+                lecturaParaAnalitica = ultimaValida;
+                esDatoReal = false; // Marcamos que estamos usando un dato histórico para la salud
+            }
+        }
+
         const vitalidad = calcularIndiceVitalidad(
-            Number(ultimaLectura.sonido_hz || 0),
-            Number(ultimaLectura.temperatura_c || 0)
+            Number(lecturaParaAnalitica.sonido_hz || 0),
+            Number(lecturaParaAnalitica.temperatura_c || 0)
         );
 
         const confort = determinarZonaConfort(
-            Number(ultimaLectura.temperatura_c || 0),
-            Number(ultimaLectura.humedad_h || 0)
+            Number(lecturaParaAnalitica.temperatura_c || 0),
+            Number(lecturaParaAnalitica.humedad_h || 0)
         );
 
         const temps = lecturasRecientes.map(l => Number(l.temperatura_c)).filter(t => !isNaN(t));
@@ -50,7 +62,11 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
                     score: vitalidad.score,
                     estado: vitalidad.estado,
                     label: vitalidad.label,
-                    color: vitalidad.color
+                    color: vitalidad.color,
+                    is_fallback: !esDatoReal,
+                    fecha_dato: lecturaParaAnalitica.fecha_registro,
+                    valor_sonido: Number(lecturaParaAnalitica.sonido_hz || 0),
+                    valor_temp: Number(lecturaParaAnalitica.temperatura_c || 0)
                 },
                 confort: {
                     zona: confort.zona,
