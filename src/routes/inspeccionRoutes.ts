@@ -143,43 +143,8 @@ router.use(authenticateToken);
  */
 router.post('/', inspeccionController.createInspeccionHandler);
 
-/**
- * @swagger
- * /api/inspecciones/colmena/{colmenaId}:
- *   get:
- *     summary: Obtener todas las inspecciones de una colmena
- *     tags: [Inspecciones]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: colmenaId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: ID de la colmena
- *     responses:
- *       200:
- *         description: Lista de inspecciones de la colmena
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *       400:
- *         description: colmenaId requerido
- *       401:
- *         description: No autorizado
- */
 router.get('/colmena/:colmenaId', inspeccionController.getInspeccionesByColmenaHandler);
+router.get('/colmena/:colmenaId/historial', inspeccionController.getBitacoraByColmenaHandler);
 
 /**
  * @swagger

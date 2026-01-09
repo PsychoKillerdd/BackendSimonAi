@@ -34,10 +34,10 @@ export async function getInspeccionesByColmenaHandler(req: Request, res: Respons
             return res.status(400).json({ success: false, error: 'colmenaId requerido' });
         }
 
-        const bitacora = await inspeccionService.getBitacoraByColmena(colmenaId as string);
+        const inspecciones = await inspeccionService.getInspeccionesByColmena(colmenaId as string);
         res.status(200).json({
             success: true,
-            data: bitacora
+            data: inspecciones
         });
     } catch (error: any) {
         console.error('Error al obtener inspecciones:', error);
@@ -69,6 +69,26 @@ export async function getInspeccionByIdHandler(req: Request, res: Response) {
         res.status(500).json({
             success: false,
             error: error.message || 'Error al obtener la inspección'
+        });
+    }
+}
+export async function getBitacoraByColmenaHandler(req: Request, res: Response) {
+    try {
+        const { colmenaId } = req.params;
+        if (!colmenaId) {
+            return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+        }
+
+        const bitacora = await inspeccionService.getBitacoraByColmena(colmenaId as string);
+        res.status(200).json({
+            success: true,
+            data: bitacora
+        });
+    } catch (error: any) {
+        console.error('Error al obtener bitácora:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Error al obtener la bitácora'
         });
     }
 }
