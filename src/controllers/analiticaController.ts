@@ -49,7 +49,8 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
                 vitalidad: {
                     score: vitalidad.score,
                     estado: vitalidad.estado,
-                    label: vitalidad.score >= 90 ? 'Óptimo' : (vitalidad.score >= 60 ? 'Alerta' : 'Crítico')
+                    label: vitalidad.label,
+                    color: vitalidad.color
                 },
                 confort: {
                     zona: confort.zona,

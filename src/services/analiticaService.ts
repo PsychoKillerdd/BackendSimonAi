@@ -8,38 +8,46 @@ export interface VigorStatus {
     etiquetas_riesgo: string[];
 }
 
-export function calcularIndiceVitalidad(sonido_hz: number, temp_int: number): { score: number, estado: VigorStatus['estado_acustico'] } {
-    let score = 100;
-    let estado: VigorStatus['estado_acustico'] = 'Tranquila';
-
+export function calcularIndiceVitalidad(sonido_hz: number, temp_int: number): { score: number, estado: VigorStatus['estado_acustico'], color: string, label: string } {
     const hz = Number(sonido_hz);
     const temp = Number(temp_int);
 
-    // 1. Lógica Acústica
-    if (hz >= 200 && hz <= 350) {
+    // Si no hay datos válidos (frecuencia muy baja)
+    if (hz < 100) {
+        return { score: 0, estado: 'Tranquila', color: 'bg-gray-100 text-gray-600', label: 'Sin datos' };
+    }
+
+    let score = 70; // Baseline
+    let estado: VigorStatus['estado_acustico'] = 'Tranquila';
+    let color = 'bg-blue-100 text-blue-600';
+    let label = 'Normal';
+
+    // 1. Lógica Acústica (Prioridad)
+    if (hz >= 200 && hz <= 350 && temp >= 34 && temp <= 35) {
+        // Estado Óptimo
+        const porcentaje = 100 - ((Math.abs(275 - hz) / 75) * 10);
+        score = Math.max(90, Math.min(100, porcentaje));
         estado = hz > 300 ? 'Activa' : 'Tranquila';
+        color = 'bg-green-500 text-white';
+        label = 'Óptimo';
     } else if ((hz >= 351 && hz <= 400) || (hz >= 181 && hz <= 199)) {
-        score -= 20;
+        // Estado Alerta
+        const baselineTemp = 34.5;
+        const desviacionTemp = Math.abs(temp - baselineTemp);
+        const porcentaje = 75 - (desviacionTemp * 10);
+        score = Math.max(60, Math.min(89, porcentaje));
         estado = 'Estresada';
+        color = 'bg-yellow-500 text-white';
+        label = 'Alerta';
     } else if (hz > 400 || hz < 180) {
-        score -= 50;
+        // Estado Crítico
+        score = Math.min(60, 50 + (hz / 10));
         estado = 'Posible Orfandad/Enjambrazón';
+        color = 'bg-red-500 text-white';
+        label = 'Crítico';
     }
 
-    // 2. Lógica Térmica (Estabilidad en 34°C - 35°C)
-    const desviacionTemp = Math.abs(temp - 34.5);
-    if (desviacionTemp > 0.5 && desviacionTemp <= 1) {
-        score -= 15;
-    } else if (desviacionTemp > 1) {
-        score -= 40;
-    }
-
-    // Penalización exponencial si ambos están mal
-    if (score < 50 && (hz > 400 || hz < 180)) {
-        score = Math.max(0, score - 20);
-    }
-
-    return { score: Math.max(0, score), estado };
+    return { score: Math.round(score), estado, color, label };
 }
 
 export function determinarZonaConfort(temp: number, hum: number): { zona: VigorStatus['confort_higrotermico'], riesgo: string | null } {

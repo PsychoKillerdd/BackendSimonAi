@@ -1,6 +1,6 @@
 import { db } from '../config/db';
 import { apiario, colmena, ubicacion_apiario, dispositivo_simonia, lectura_sensor, alerta } from '../config/db/schema';
-import { eq, inArray, desc, and, sql } from 'drizzle-orm';
+import { eq, inArray, desc, and, sql, getTableName } from 'drizzle-orm';
 import { calcularIndiceVitalidad } from './analiticaService';
 
 export type ApiarioInput = {
@@ -57,9 +57,22 @@ export async function getApiariosByEmpresa(empresaId: string) {
     .from(ubicacion_apiario)
     .where(inArray(ubicacion_apiario.id_apiario, apiarioIds));
 
+  const colmenaCounts = await db
+    .select({
+      id_apiario: colmena.id_apiario_actual,
+      count: sql<number>`count(*)`
+    })
+    .from(colmena)
+    .where(inArray(colmena.id_apiario_actual, apiarioIds))
+    .groupBy(colmena.id_apiario_actual);
+
+  const countMap = new Map();
+  colmenaCounts.forEach(c => countMap.set(c.id_apiario, Number(c.count)));
+
   const result = apiarios.map(api => ({
     ...api,
-    ubicacion_apiario: allUbicaciones.filter(u => u.id_apiario === api.id)
+    ubicacion_apiario: allUbicaciones.filter(u => u.id_apiario === api.id),
+    colmena_count: countMap.get(api.id) || 0
   }));
 
   return result;
@@ -84,28 +97,35 @@ export async function getApiarioById(apiarioId: string) {
     .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
     .where(eq(colmena.id_apiario_actual, api.id));
 
-  // Enriquecer cada colmena con su última lectura y alertas pendientes
-  const enrichedColmenas = await Promise.all(colmenasWithDevices.map(async (row) => {
-    // Obtener última lectura
-    const ultimaLectura = await db
-      .select()
-      .from(lectura_sensor)
-      .where(eq(lectura_sensor.id_colmena, row.colmena.id))
-      .orderBy(desc(lectura_sensor.fecha_registro))
-      .limit(1);
+  // Bulk fetch data for all colmenas to avoid N+1
+  const colmenaIds = colmenasWithDevices.map(row => row.colmena.id);
 
-    // Obtener conteo de alertas pendientes
-    const alertasPendientes = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(alerta)
-      .where(
-        and(
-          eq(alerta.id_colmena, row.colmena.id),
-          eq(alerta.estado, 'pendiente')
-        )
-      );
+  // Latest reading per colmena using a more efficient query approach
+  const latestReadings = colmenaIds.length > 0 ? await db.execute(sql`
+    SELECT DISTINCT ON (id_colmena) * 
+    FROM ${sql.identifier(getTableName(lectura_sensor))} 
+    WHERE id_colmena IN ${colmenaIds}
+    ORDER BY id_colmena, fecha_registro DESC
+  `) : [];
 
-    const lectura = ultimaLectura[0];
+  const readingsMap = new Map();
+  (latestReadings as any[]).forEach(r => readingsMap.set(r.id_colmena, r));
+
+  // Alert counts per colmena
+  const alertCounts = colmenaIds.length > 0 ? await db
+    .select({
+      id_colmena: alerta.id_colmena,
+      count: sql<number>`count(*)`
+    })
+    .from(alerta)
+    .where(and(inArray(alerta.id_colmena, colmenaIds), eq(alerta.estado, 'pendiente')))
+    .groupBy(alerta.id_colmena) : [];
+
+  const alertsMap = new Map();
+  alertCounts.forEach(ac => alertsMap.set(ac.id_colmena, Number(ac.count)));
+
+  const enrichedColmenas = colmenasWithDevices.map((row) => {
+    const lectura = readingsMap.get(row.colmena.id);
     let salud = null;
 
     if (lectura) {
@@ -115,7 +135,9 @@ export async function getApiarioById(apiarioId: string) {
       );
       salud = {
         iv: iv.score,
-        estado: iv.estado
+        estado: iv.estado,
+        color: iv.color,
+        label: iv.label
       };
     }
 
@@ -123,10 +145,10 @@ export async function getApiarioById(apiarioId: string) {
       ...row.colmena,
       dispositivo_simonia: row.dispositivo_simonia,
       ultima_lectura: lectura || null,
-      alertas_pendientes: Number(alertasPendientes[0]?.count || 0),
+      alertas_pendientes: alertsMap.get(row.colmena.id) || 0,
       salud
     };
-  }));
+  });
 
   return {
     ...api,
@@ -171,25 +193,34 @@ export async function getColmenasByApiario(apiarioId: string) {
     .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
     .where(eq(colmena.id_apiario_actual, apiarioId));
 
-  return Promise.all(colmenasWithDevices.map(async (row) => {
-    const ultimaLectura = await db
-      .select()
-      .from(lectura_sensor)
-      .where(eq(lectura_sensor.id_colmena, row.colmena.id))
-      .orderBy(desc(lectura_sensor.fecha_registro))
-      .limit(1);
+  if (colmenasWithDevices.length === 0) return [];
 
-    const alertasPendientes = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(alerta)
-      .where(
-        and(
-          eq(alerta.id_colmena, row.colmena.id),
-          eq(alerta.estado, 'pendiente')
-        )
-      );
+  const colmenaIds = colmenasWithDevices.map(row => row.colmena.id);
 
-    const lectura = ultimaLectura[0];
+  // Latest readings
+  const latestReadings = await db.execute(sql`
+    SELECT DISTINCT ON (id_colmena) * 
+    FROM ${sql.identifier(getTableName(lectura_sensor))} 
+    WHERE id_colmena IN ${colmenaIds}
+    ORDER BY id_colmena, fecha_registro DESC
+  `);
+  const readingsMap = new Map();
+  (latestReadings as any[]).forEach(r => readingsMap.set(r.id_colmena, r));
+
+  // Alert counts
+  const alertCounts = await db
+    .select({
+      id_colmena: alerta.id_colmena,
+      count: sql<number>`count(*)`
+    })
+    .from(alerta)
+    .where(and(inArray(alerta.id_colmena, colmenaIds), eq(alerta.estado, 'pendiente')))
+    .groupBy(alerta.id_colmena);
+  const alertsMap = new Map();
+  alertCounts.forEach(ac => alertsMap.set(ac.id_colmena, Number(ac.count)));
+
+  return colmenasWithDevices.map((row) => {
+    const lectura = readingsMap.get(row.colmena.id);
     let salud = null;
 
     if (lectura) {
@@ -199,7 +230,9 @@ export async function getColmenasByApiario(apiarioId: string) {
       );
       salud = {
         iv: iv.score,
-        estado: iv.estado
+        estado: iv.estado,
+        color: iv.color,
+        label: iv.label
       };
     }
 
@@ -207,10 +240,10 @@ export async function getColmenasByApiario(apiarioId: string) {
       ...row.colmena,
       dispositivo_simonia: row.dispositivo_simonia,
       ultima_lectura: lectura || null,
-      alertas_pendientes: Number(alertasPendientes[0]?.count || 0),
+      alertas_pendientes: alertsMap.get(row.colmena.id) || 0,
       salud
     };
-  }));
+  });
 }
 
 export async function getColmenasByEmpresa(empresaId: string) {
@@ -225,25 +258,34 @@ export async function getColmenasByEmpresa(empresaId: string) {
     .leftJoin(dispositivo_simonia, eq(colmena.id_dispositivo, dispositivo_simonia.id))
     .where(eq(colmena.id_empresa, empresaId));
 
-  return Promise.all(rows.map(async (row) => {
-    const ultimaLectura = await db
-      .select()
-      .from(lectura_sensor)
-      .where(eq(lectura_sensor.id_colmena, row.colmena.id))
-      .orderBy(desc(lectura_sensor.fecha_registro))
-      .limit(1);
+  if (rows.length === 0) return [];
 
-    const alertasPendientes = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(alerta)
-      .where(
-        and(
-          eq(alerta.id_colmena, row.colmena.id),
-          eq(alerta.estado, 'pendiente')
-        )
-      );
+  const colmenaIds = rows.map(row => row.colmena.id);
 
-    const lectura = ultimaLectura[0];
+  // Latest readings
+  const latestReadings = await db.execute(sql`
+    SELECT DISTINCT ON (id_colmena) * 
+    FROM ${sql.identifier(getTableName(lectura_sensor))} 
+    WHERE id_colmena IN ${colmenaIds}
+    ORDER BY id_colmena, fecha_registro DESC
+  `);
+  const readingsMap = new Map();
+  (latestReadings as any[]).forEach(r => readingsMap.set(r.id_colmena, r));
+
+  // Alert counts
+  const alertCounts = await db
+    .select({
+      id_colmena: alerta.id_colmena,
+      count: sql<number>`count(*)`
+    })
+    .from(alerta)
+    .where(and(inArray(alerta.id_colmena, colmenaIds), eq(alerta.estado, 'pendiente')))
+    .groupBy(alerta.id_colmena);
+  const alertsMap = new Map();
+  alertCounts.forEach(ac => alertsMap.set(ac.id_colmena, Number(ac.count)));
+
+  return rows.map((row) => {
+    const lectura = readingsMap.get(row.colmena.id);
     let salud = null;
 
     if (lectura) {
@@ -253,7 +295,9 @@ export async function getColmenasByEmpresa(empresaId: string) {
       );
       salud = {
         iv: iv.score,
-        estado: iv.estado
+        estado: iv.estado,
+        color: iv.color,
+        label: iv.label
       };
     }
 
@@ -262,10 +306,10 @@ export async function getColmenasByEmpresa(empresaId: string) {
       apiario: row.apiario,
       dispositivo_simonia: row.dispositivo_simonia,
       ultima_lectura: lectura || null,
-      alertas_pendientes: Number(alertasPendientes[0]?.count || 0),
+      alertas_pendientes: alertsMap.get(row.colmena.id) || 0,
       salud
     };
-  }));
+  });
 }
 
 export async function getColmenaById(colmenaId: string) {
