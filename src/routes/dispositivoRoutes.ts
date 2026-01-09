@@ -53,8 +53,8 @@ const router = Router();
  *       200:
  *         description: Lista de dispositivos
  */
-router.post('/dispositivos', authenticateToken, requireAdmin, createDispositivoHandler);
-router.get('/dispositivos', authenticateToken, requireAdmin, getAllDispositivosHandler);
+router.post('/dispositivos', createDispositivoHandler);
+router.get('/dispositivos', getAllDispositivosHandler);
 
 /**
  * @swagger
@@ -176,7 +176,7 @@ router.patch('/dispositivos/:dispositivoId/estado', authenticateToken, requireAd
  *       200:
  *         description: Dispositivo asignado
  */
-router.patch('/dispositivos/:dispositivoId/asignar', authenticateToken, requireAdmin, asignarDispositivoHandler);
+router.patch('/dispositivos/:dispositivoId/asignar', asignarDispositivoHandler);
 
 /**
  * @swagger
