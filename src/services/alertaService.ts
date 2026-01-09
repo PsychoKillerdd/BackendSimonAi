@@ -35,7 +35,9 @@ const CONFIG_AMBIENTAL = {
 };
 
 const TEMPORALIDAD = {
-    PERSISTENCIA_ORFANDAD: 4, // 4 muestras para confirmar orfandad
+    PERSISTENCIA_ORFANDAD: 4, // Muestras para confirmar orfandad (estándar)
+    PERSISTENCIA_ORFANDAD_INVIERNO: 6, // Más estricto en invierno para evitar falsos positivos por letargo
+    PERSISTENCIA_ATAQUE: 2, // 2 muestras para confirmar ataque (evita picos por ruidos pasajeros)
 };
 
 type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
@@ -174,13 +176,25 @@ const REGLAS_ACUSTICAS = [
     {
         codigo: 'ORFANDAD_ACUSTICA',
         nombre: 'Posible Orfandad Detectada',
-        descripcion: 'Vigor Crítico: Patrón acústico de "rugido" (Warble) entre 165-285Hz sostenido (>1h), indicando falta de reina.',
+        descripcion: 'Vigor Crítico: Patrón acústico de "rugido" (Warble) entre 165-285Hz sostenido, indicando falta de reina.',
         condicion: (l: any, p: any, history: any[]) => {
-            if (!history || history.length < TEMPORALIDAD.PERSISTENCIA_ORFANDAD) return false;
-            // Verificar si las últimas N lecturas están en rango de orfandad
-            return history.slice(0, TEMPORALIDAD.PERSISTENCIA_ORFANDAD).every(h =>
-                Number(h.sonido_hz) >= CONFIG_AUDIO.BAND_WARBLE_MIN &&
-                Number(h.sonido_hz) <= CONFIG_AUDIO.BAND_WARBLE_MAX
+            const temporada = getTemporadaChile();
+            const persistenciaRequerida = temporada === 'INVIERNO'
+                ? TEMPORALIDAD.PERSISTENCIA_ORFANDAD_INVIERNO
+                : TEMPORALIDAD.PERSISTENCIA_ORFANDAD;
+
+            if (!history || history.length < (persistenciaRequerida - 1)) return false;
+
+            const esWarble = (hz: number) =>
+                hz >= CONFIG_AUDIO.BAND_WARBLE_MIN &&
+                hz <= CONFIG_AUDIO.BAND_WARBLE_MAX;
+
+            // Verificar actual + historial reciente
+            const actualValido = esWarble(Number(l.sonido_hz));
+            if (!actualValido) return false;
+
+            return history.slice(0, persistenciaRequerida - 1).every(h =>
+                esWarble(Number(h.sonido_hz))
             );
         },
         prioridad: 'alta' as const,
@@ -204,9 +218,16 @@ const REGLAS_ACUSTICAS = [
     {
         codigo: 'ATAQUE_O_ESTRES',
         nombre: 'Estrés Defensivo o Ataque Externo',
-        descripcion: 'Respuesta de "siseo" (Hissing) detectada por picos de espectro completo o fuera de rango normal (>600Hz).',
-        condicion: (l: any) =>
-            Number(l.sonido_hz) >= CONFIG_AUDIO.BAND_HISS_MIN,
+        descripcion: 'Respuesta de "siseo" (Hissing) detectada por picos fuera de rango normal (>600Hz) de forma persistente.',
+        condicion: (l: any, p: any, history: any[]) => {
+            if (!history || history.length < (TEMPORALIDAD.PERSISTENCIA_ATAQUE - 1)) return false;
+
+            const esHiss = (hz: number) => hz >= CONFIG_AUDIO.BAND_HISS_MIN;
+
+            // Verificar actual + historial
+            return esHiss(Number(l.sonido_hz)) &&
+                history.slice(0, TEMPORALIDAD.PERSISTENCIA_ATAQUE - 1).every(h => esHiss(Number(h.sonido_hz)));
+        },
         prioridad: 'alta' as const,
         color: '#8B0000'
     }
