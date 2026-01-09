@@ -9,6 +9,7 @@ export type LecturaInput = {
   peso_kg?: number;
   sonido_hz?: number;
   presion_hpa?: number;
+  fecha_registro?: string; // Para simulaciones históricas
 };
 
 export async function createLecturaSensorByCodigo(payload: LecturaInput) {
@@ -50,6 +51,9 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
   if (payload.peso_kg !== undefined) insertValues.peso_kg = payload.peso_kg;
   if (payload.sonido_hz !== undefined) insertValues.sonido_hz = payload.sonido_hz;
   if (payload.presion_hpa !== undefined) insertValues.presion_hpa = payload.presion_hpa;
+  if (payload.fecha_registro !== undefined) {
+    insertValues.fecha_registro = payload.fecha_registro;
+  }
 
   // 1. Insertar en lectura_sensor (tabla principal) - CRÍTICO, debe completarse
   const result = await db.insert(lectura_sensor).values(insertValues).returning();
@@ -66,6 +70,7 @@ export async function createLecturaSensorByCodigo(payload: LecturaInput) {
       peso_kg: insertValues.peso_kg,
       sonido_hz: insertValues.sonido_hz,
       presion_hpa: insertValues.presion_hpa,
+      fecha_registro: insertValues.fecha_registro || lecturaCreada.fecha_registro,
     }).catch(err => console.error('Error guardando historial (async):', err));
   });
 

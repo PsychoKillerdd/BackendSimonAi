@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { getUltimaLecturaByColmena, getLecturasByColmena, getUltimaLecturaValidaByColmena } from '../services/lecturaService';
-import { calcularIndiceVitalidad, determinarZonaConfort, calcularNivelHomeostasis } from '../services/analiticaService';
+import { calcularIndiceVitalidad, determinarZonaConfort, calcularNivelHomeostasis, generarRecomendacionesExpertas } from '../services/analiticaService';
 
 export async function getDashboardOperativoHandler(req: Request, res: Response) {
     try {
@@ -55,6 +55,12 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
         const varianzaExtSimulada = 6.0;
         const homeostasisNivel = calcularNivelHomeostasis(varianzaInt, varianzaExtSimulada);
 
+        const recomendaciones = generarRecomendacionesExpertas(
+            { score: vitalidad.score, estado: vitalidad.estado },
+            { zona: confort.zona, riesgo: confort.riesgo },
+            homeostasisNivel
+        );
+
         res.status(200).json({
             success: true,
             data: {
@@ -80,6 +86,7 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
                         (homeostasisNivel === 'Media' ? 'Población insuficiente' : 'Emergencia: Colmena colapsada'),
                     varianza_interna: varianzaInt.toFixed(4)
                 },
+                recomendaciones,
                 ultima_actualizacion: ultimaLectura.fecha_registro
             }
         });

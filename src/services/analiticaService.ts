@@ -6,6 +6,7 @@ export interface VigorStatus {
     homeostasis: 'Alta' | 'Media' | 'Nula';
     confort_higrotermico: 'Zona Confort' | 'Zona Estrés' | 'Zona Peligro';
     etiquetas_riesgo: string[];
+    recomendaciones: string[];
 }
 
 export function calcularIndiceVitalidad(sonido_hz: number, temp_int: number): { score: number, estado: VigorStatus['estado_acustico'], color: string, label: string } {
@@ -79,4 +80,42 @@ export function calcularNivelHomeostasis(varianzaInt: number, varianzaExt: numbe
     if (varianzaInt < 0.5 && varianzaExt > 5) return 'Alta';
     if (varianzaInt > 1) return 'Media';
     return 'Nula';
+}
+
+export function generarRecomendacionesExpertas(
+    vitalidad: { score: number, estado: string },
+    confort: { zona: string, riesgo: string | null },
+    homeostasis: string
+): string[] {
+    const recomendaciones: string[] = [];
+
+    // Recomendaciones por Vitalidad
+    if (vitalidad.score < 60) {
+        recomendaciones.push("🚨 Revisión inmediata: El patrón acústico indica una anomalía crítica (posible orfandad o enjambrazón).");
+    } else if (vitalidad.score < 85) {
+        recomendaciones.push("⚠️ Monitoreo preventivo: La actividad acústica es irregular. Verifique disponibilidad de espacio.");
+    }
+
+    // Recomendaciones por Homeostasis
+    if (homeostasis === 'Nula') {
+        recomendaciones.push("🌡️ Inspección de población: La colmena no regula temperatura. Posible pérdida masiva de abejas o colapso.");
+    } else if (homeostasis === 'Media') {
+        recomendaciones.push("📉 Fortalecimiento: La capacidad térmica es limitada. Considere alimentar o reducir espacio.");
+    }
+
+    // Recomendaciones por Confort
+    if (confort.zona === 'Zona Peligro') {
+        recomendaciones.push("💧 Gestión ambiental: Condiciones críticas de humedad/temperatura. Mejore la ventilación o el aislamiento térmico.");
+    }
+
+    if (confort.riesgo?.includes('Yesificada')) {
+        recomendaciones.push("🍄 Tratamiento Cría Yesificada: Se detectó humedad alta persistente con baja temperatura. Aplique correctivos de aireación.");
+    }
+
+    // Recomendación general si todo está bien
+    if (recomendaciones.length === 0 && vitalidad.score >= 90) {
+        recomendaciones.push("✅ Operación normal: Mantenga el calendario de inspecciones estándar.");
+    }
+
+    return recomendaciones;
 }
