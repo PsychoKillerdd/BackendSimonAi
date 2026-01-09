@@ -1,6 +1,7 @@
 import { db } from '../config/db';
 import { dispositivo_simonia, colmena } from '../config/db/schema';
-import { eq, desc, notInArray, and } from 'drizzle-orm';
+import { eq, desc, notInArray, and, isNull } from 'drizzle-orm';
+
 
 export type DispositivoInput = {
   codigo_unico: string;
@@ -76,7 +77,7 @@ export async function getDispositivosSinAsignar() {
   const result = await db
     .select()
     .from(dispositivo_simonia)
-    .where(eq(dispositivo_simonia.id_propietario, null))
+    .where(isNull(dispositivo_simonia.id_propietario))
     .orderBy(desc(dispositivo_simonia.fecha_registro));
   return result;
 }

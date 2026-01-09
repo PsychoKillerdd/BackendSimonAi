@@ -97,6 +97,39 @@ export async function getAlertasPendientesByColmena(colmenaId: string) {
     .orderBy(desc(alerta.fecha_evento));
 }
 
+// Obtener alertas ATENDIDAS (resueltas) de una colmena
+export async function getAlertasAtendidasByColmena(colmenaId: string) {
+  return await db
+    .select({
+      id: alerta.id,
+      descripcion: alerta.descripcion,
+      temperatura_c: alerta.temperatura_c,
+      humedad_h: alerta.humedad_h,
+      peso_kg: alerta.peso_kg,
+      presion_hpa: alerta.presion_hpa,
+      sonido_hz: alerta.sonido_hz,
+      fecha_evento: alerta.fecha_evento,
+      estado: alerta.estado,
+      prioridad: alerta.prioridad,
+      origen_alerta: alerta.origen_alerta,
+      comentario_atencion: alerta.comentario_atencion,
+      tipo_alerta: {
+        nombre: tipo_alerta.nombre,
+        codigo: tipo_alerta.codigo,
+        color_hex: tipo_alerta.color_hex,
+      },
+    })
+    .from(alerta)
+    .leftJoin(tipo_alerta, eq(alerta.id_tipo_alerta, tipo_alerta.id))
+    .where(
+      and(
+        eq(alerta.id_colmena, colmenaId),
+        eq(alerta.estado, 'resuelta')
+      )
+    )
+    .orderBy(desc(alerta.fecha_evento));
+}
+
 // Obtener alertas pendientes de una empresa
 export async function getAlertasPendientesByEmpresa(empresaId: string) {
   return await db

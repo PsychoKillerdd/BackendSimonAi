@@ -13,7 +13,7 @@ export function startKeepAlive(port: number) {
   setInterval(async () => {
     try {
       const response = await fetch(`${url}/health`);
-      const data = await response.json();
+      const data = await response.json() as any;
       console.log(`✅ Keep-alive ping exitoso - Status: ${data.status}`);
     } catch (error) {
       console.error('❌ Keep-alive ping falló:', error);

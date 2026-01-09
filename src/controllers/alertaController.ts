@@ -5,6 +5,7 @@ import {
   getAlertasByEmpresa,
   getAlertasPendientesByColmena,
   getAlertasPendientesByEmpresa,
+  getAlertasAtendidasByColmena,
   marcarAlertaAtendida,
   getResumenAlertasByEmpresa,
   getAlertasByFecha,
@@ -94,6 +95,32 @@ export async function getAlertasPendientesColmenaHandler(req: AuthRequest, res: 
     });
   } catch (error: any) {
     console.error('Error obteniendo alertas pendientes de colmena:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error al obtener alertas',
+    });
+  }
+}
+
+// 🚨 Obtener solo alertas ATENDIDAS de una colmena
+export async function getAlertasAtendidasColmenaHandler(req: AuthRequest, res: Response) {
+  try {
+    const { colmenaId } = req.params;
+
+    if (!colmenaId) {
+      return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    }
+
+    const alertasRaw = await getAlertasAtendidasByColmena(colmenaId);
+    const alertas = filtrarAlertasPermitidas(alertasRaw);
+
+    res.status(200).json({
+      success: true,
+      data: alertas,
+      total: alertas.length,
+    });
+  } catch (error: any) {
+    console.error('Error obteniendo alertas atendidas de colmena:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Error al obtener alertas',

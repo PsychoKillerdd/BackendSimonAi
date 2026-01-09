@@ -34,10 +34,10 @@ export async function getInspeccionesByColmenaHandler(req: Request, res: Respons
             return res.status(400).json({ success: false, error: 'colmenaId requerido' });
         }
 
-        const inspecciones = await inspeccionService.getInspeccionesByColmena(colmenaId as string);
+        const bitacora = await inspeccionService.getBitacoraByColmena(colmenaId as string);
         res.status(200).json({
             success: true,
-            data: inspecciones
+            data: bitacora
         });
     } catch (error: any) {
         console.error('Error al obtener inspecciones:', error);

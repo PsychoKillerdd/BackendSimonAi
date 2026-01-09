@@ -7,6 +7,7 @@ import {
   marcarAlertaAtendidaHandler,
   getResumenAlertasHandler,
   getAlertasByFechaHandler,
+  getAlertasAtendidasColmenaHandler,
 } from '../controllers/alertaController';
 import { authenticateToken } from '../middlewares/authMiddleware';
 
@@ -58,6 +59,7 @@ router.get('/alertas/colmena/:colmenaId', authenticateToken, getAlertasColmenaHa
  *         description: Lista de alertas pendientes
  */
 router.get('/alertas/colmena/:colmenaId/pendientes', authenticateToken, getAlertasPendientesColmenaHandler);
+router.get('/alertas/colmena/:colmenaId/atendidas', authenticateToken, getAlertasAtendidasColmenaHandler);
 
 /**
  * @swagger
