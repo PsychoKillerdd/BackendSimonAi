@@ -66,7 +66,8 @@ export async function getDashboardOperativoHandler(req: Request, res: Response) 
                     is_fallback: !esDatoReal,
                     fecha_dato: lecturaParaAnalitica.fecha_registro,
                     valor_sonido: Number(lecturaParaAnalitica.sonido_hz || 0),
-                    valor_temp: Number(lecturaParaAnalitica.temperatura_c || 0)
+                    valor_temp: Number(lecturaParaAnalitica.temperatura_c || 0),
+                    valor_humedad: Number(lecturaParaAnalitica.humedad_h || 0)
                 },
                 confort: {
                     zona: confort.zona,
