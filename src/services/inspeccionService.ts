@@ -4,23 +4,23 @@ import { eq, desc, and } from 'drizzle-orm';
 
 export interface InspeccionInput {
     colmena_id: string;
-    apiario_id?: string;
     alerta_id?: string;
     fecha_inspeccion: string;
     nombre_inspeccion: string;
     ubicacion_apiario?: string;
-    temperatura?: string;
-    humedad?: string;
-    velocidad_viento?: string;
+    // Unidades estandarizadas
+    temperatura_celsius?: string;
+    humedad_porcentaje?: string;
+    velocidad_viento_kmh?: string;
     direccion_viento?: string;
-    cielo?: string;
-    estado_colmena?: string;
-    poblacion_abejas?: string;
-    presencia_reina?: string;
-    celdas_reales?: string;
-    postura?: string;
-    reservas_alimento?: string;
-    comportamiento_abejas?: string;
+    cielo?: 'despejado' | 'nublado' | 'lluvia' | 'tormenta';
+    estado_colmena?: 'buena' | 'regular' | 'mala';
+    poblacion_abejas?: 'baja' | 'media' | 'alta' | 'muy_alta';
+    presencia_reina?: 'si' | 'no' | 'dudoso';
+    celdas_reales?: 'ninguna' | 'pocas' | 'muchas' | 'enjambrazon';
+    postura?: 'nula' | 'uniforme' | 'irregular' | 'ausente';
+    reservas_alimento?: 'criticas' | 'escasas' | 'suficientes' | 'abundantes';
+    comportamiento_abejas?: 'tranquilas' | 'agresivas' | 'muy_agresivas' | 'nerviosas';
     signos_enfermedad?: string;
     observaciones?: string;
     recomendaciones?: string;
@@ -46,18 +46,17 @@ const toNumberOrNull = (val?: string): string | null => {
 
 export async function createInspeccion(data: InspeccionInput) {
     // Procesar los datos para convertir strings vacíos a null
-    const processedData = {
+    const processedData: any = {
         colmena_id: data.colmena_id,
-        apiario_id: emptyToNull(data.apiario_id),
         alerta_id: emptyToNull(data.alerta_id),
         fecha_inspeccion: data.fecha_inspeccion,
         nombre_inspeccion: data.nombre_inspeccion,
         ubicacion_apiario: emptyToNull(data.ubicacion_apiario),
-        // Campos numéricos - convertir a número o null
-        temperatura: toNumberOrNull(data.temperatura),
-        humedad: toNumberOrNull(data.humedad),
-        velocidad_viento: toNumberOrNull(data.velocidad_viento),
-        // Campos de texto
+        // Campos numéricos estandarizados
+        temperatura_celsius: toNumberOrNull(data.temperatura_celsius),
+        humedad_porcentaje: toNumberOrNull(data.humedad_porcentaje),
+        velocidad_viento_kmh: toNumberOrNull(data.velocidad_viento_kmh),
+        // Campos con enums (el casting lo maneja Postgres)
         direccion_viento: emptyToNull(data.direccion_viento),
         cielo: emptyToNull(data.cielo),
         estado_colmena: emptyToNull(data.estado_colmena),
@@ -68,7 +67,7 @@ export async function createInspeccion(data: InspeccionInput) {
         reservas_alimento: emptyToNull(data.reservas_alimento),
         comportamiento_abejas: emptyToNull(data.comportamiento_abejas),
         signos_enfermedad: emptyToNull(data.signos_enfermedad),
-        observaciones: data.observaciones || '',
+        observaciones: emptyToNull(data.observaciones),
         recomendaciones: emptyToNull(data.recomendaciones),
         acciones_correctivas: emptyToNull(data.acciones_correctivas),
     };
@@ -139,9 +138,9 @@ export async function getBitacoraByColmena(colmenaId: string) {
             nombre_inspeccion: `Alerta Atendida: ${alt.tipo_alerta_nombre}`,
             observaciones: alt.descripcion,
             recomendaciones: alt.comentario_atencion,
-            estado_colmena: alt.prioridad === 'critica' || alt.prioridad === 'alta' ? 'Malo' : 'Regular',
-            temperatura: alt.temperatura_c,
-            humedad: alt.humedad_h,
+            estado_colmena: alt.prioridad === 'critica' || alt.prioridad === 'alta' ? 'mala' : 'regular',
+            temperatura_celsius: alt.temperatura_c,
+            humedad_porcentaje: alt.humedad_h,
             peso_kg: alt.peso_kg,
             presion_hpa: alt.presion_hpa,
             sonido_hz: alt.sonido_hz,

@@ -1,5 +1,4 @@
-// drizzle/schema.ts
-import { pgTable, uuid, text, numeric, integer, boolean, varchar, char, jsonb, inet, timestamp, date, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, integer, boolean, varchar, char, jsonb, inet, timestamp, date, index, pgEnum } from 'drizzle-orm/pg-core';
 
 // 🧱 empresa
 export const empresa = pgTable('empresa', {
@@ -196,6 +195,16 @@ export const registro_cambios_colmenas_apiarios = pgTable('registro_cambios_colm
   observaciones: text('observaciones'),
 });
 
+// 🧱 Enums para Inspecciones
+export const cieloEnum = pgEnum('cielo_enum', ['despejado', 'nublado', 'lluvia', 'tormenta']);
+export const estadoColmenaEnum = pgEnum('estado_colmena_enum', ['buena', 'regular', 'mala']);
+export const poblacionAbejasEnum = pgEnum('poblacion_abejas_enum', ['baja', 'media', 'alta', 'muy_alta']);
+export const presenciaReinaEnum = pgEnum('presencia_reina_enum', ['si', 'no', 'dudoso']);
+export const celdasRealesEnum = pgEnum('celdas_reales_enum', ['ninguna', 'pocas', 'muchas', 'enjambrazon']);
+export const posturaEnum = pgEnum('postura_enum', ['nula', 'uniforme', 'irregular', 'ausente']);
+export const reservasAlimentoEnum = pgEnum('reservas_alimento_enum', ['criticas', 'escasas', 'suficientes', 'abundantes']);
+export const comportamientoAbejasEnum = pgEnum('comportamiento_abejas_enum', ['tranquilas', 'agresivas', 'muy_agresivas', 'nerviosas']);
+
 // 🧱 registro_accion
 export const registro_accion = pgTable('registro_accion', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -211,30 +220,37 @@ export const registro_accion = pgTable('registro_accion', {
   fecha_accion: timestamp('fecha_accion').defaultNow(),
   exito: boolean('exito').default(true),
 });
+
 // 🧱 inspecciones_colmenas
 export const inspecciones_colmenas = pgTable('inspecciones_colmenas', {
   id: uuid('id').defaultRandom().primaryKey(),
   alerta_id: uuid('alerta_id').references(() => alerta.id),
   colmena_id: uuid('colmena_id').references(() => colmena.id),
-  apiario_id: uuid('apiario_id').references(() => apiario.id),
+  // apiario_id eliminado (redundante, se obtiene via colmena JOIN apiario)
   fecha_inspeccion: date('fecha_inspeccion').notNull(),
   nombre_inspeccion: text('nombre_inspeccion').notNull(),
   ubicacion_apiario: text('ubicacion_apiario'),
-  temperatura: numeric('temperatura'),
-  humedad: numeric('humedad'),
-  velocidad_viento: numeric('velocidad_viento'),
+  temperatura_celsius: numeric('temperatura_celsius'),
+  humedad_porcentaje: numeric('humedad_porcentaje'),
+  velocidad_viento_kmh: numeric('velocidad_viento_kmh'),
   direccion_viento: text('direccion_viento'),
-  cielo: text('cielo'),
-  estado_colmena: text('estado_colmena'),
-  poblacion_abejas: text('poblacion_abejas'),
-  presencia_reina: text('presencia_reina'),
-  celdas_reales: text('celdas_reales'),
-  postura: text('postura'),
-  reservas_alimento: text('reservas_alimento'),
-  comportamiento_abejas: text('comportamiento_abejas'),
+  cielo: cieloEnum('cielo'),
+  estado_colmena: estadoColmenaEnum('estado_colmena'),
+  poblacion_abejas: poblacionAbejasEnum('poblacion_abejas'),
+  presencia_reina: presenciaReinaEnum('presencia_reina'),
+  celdas_reales: celdasRealesEnum('celdas_reales'),
+  postura: posturaEnum('postura'),
+  reservas_alimento: reservasAlimentoEnum('reservas_alimento'),
+  comportamiento_abejas: comportamientoAbejasEnum('comportamiento_abejas'),
   signos_enfermedad: text('signos_enfermedad'),
-  observaciones: text('observaciones').notNull(),
+  observaciones: text('observaciones'), // Ahora es opcional
   recomendaciones: text('recomendaciones'),
   acciones_correctivas: text('acciones_correctivas'),
   creado_en: timestamp('creado_en', { withTimezone: true }).defaultNow(),
+}, (table) => {
+  return {
+    colmena_id_idx: index('inspeccion_colmena_id_idx').on(table.colmena_id),
+    fecha_inspeccion_idx: index('inspeccion_fecha_idx').on(table.fecha_inspeccion),
+    alerta_id_idx: index('inspeccion_alerta_id_idx').on(table.alerta_id),
+  };
 });

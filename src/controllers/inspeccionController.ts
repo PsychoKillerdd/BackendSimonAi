@@ -5,10 +5,10 @@ export async function createInspeccionHandler(req: Request, res: Response) {
     try {
         const data = req.body;
 
-        if (!data.colmena_id || !data.fecha_inspeccion || !data.nombre_inspeccion || !data.observaciones) {
+        if (!data.colmena_id || !data.fecha_inspeccion || !data.nombre_inspeccion) {
             return res.status(400).json({
                 success: false,
-                error: 'Campos requeridos faltantes: colmena_id, fecha_inspeccion, nombre_inspeccion, observaciones'
+                error: 'Campos requeridos faltantes: colmena_id, fecha_inspeccion, nombre_inspeccion'
             });
         }
 
