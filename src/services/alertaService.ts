@@ -35,9 +35,9 @@ const CONFIG_AMBIENTAL = {
 };
 
 const TEMPORALIDAD = {
-    PERSISTENCIA_ORFANDAD: 4, // Muestras para confirmar orfandad (estándar)
-    PERSISTENCIA_ORFANDAD_INVIERNO: 6, // Más estricto en invierno para evitar falsos positivos por letargo
-    PERSISTENCIA_ATAQUE: 2, // 2 muestras para confirmar ataque (evita picos por ruidos pasajeros)
+    PERSISTENCIA_ORFANDAD: 6, // 6 muestras (~1.5h) para confirmar orfandad
+    PERSISTENCIA_ORFANDAD_INVIERNO: 8, // Aún más estricto en invierno
+    PERSISTENCIA_ATAQUE: 3, // 3 muestras seguidas (>600Hz) para confirmar ataque real
 };
 
 type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
@@ -176,7 +176,7 @@ const REGLAS_ACUSTICAS = [
     {
         codigo: 'ORFANDAD_ACUSTICA',
         nombre: 'Posible Orfandad Detectada',
-        descripcion: 'Vigor Crítico: Patrón acústico de "rugido" (Warble) entre 165-285Hz sostenido, indicando falta de reina.',
+        descripcion: 'Vigor Crítico: Patrón de llanto (180-260Hz) persistente (>1.5h), indicando ausencia de reina.',
         condicion: (l: any, p: any, history: any[]) => {
             const temporada = getTemporadaChile();
             const persistenciaRequerida = temporada === 'INVIERNO'
@@ -185,16 +185,15 @@ const REGLAS_ACUSTICAS = [
 
             if (!history || history.length < (persistenciaRequerida - 1)) return false;
 
-            const esWarble = (hz: number) =>
-                hz >= CONFIG_AUDIO.BAND_WARBLE_MIN &&
-                hz <= CONFIG_AUDIO.BAND_WARBLE_MAX;
+            // Rango más estricto para evitar ruidos de trabajo normal
+            const esWarbleEstricto = (hz: number) =>
+                hz >= 180 && hz <= 260;
 
-            // Verificar actual + historial reciente
-            const actualValido = esWarble(Number(l.sonido_hz));
+            const actualValido = esWarbleEstricto(Number(l.sonido_hz));
             if (!actualValido) return false;
 
             return history.slice(0, persistenciaRequerida - 1).every(h =>
-                esWarble(Number(h.sonido_hz))
+                esWarbleEstricto(Number(h.sonido_hz))
             );
         },
         prioridad: 'alta' as const,
@@ -204,13 +203,15 @@ const REGLAS_ACUSTICAS = [
     {
         codigo: 'PRE_ENJAMBRAZON_ACUSTICA',
         nombre: 'Alta Probabilidad de Enjambrazón',
-        descripcion: 'Vigor Excedente: Salto súbito de frecuencia (400-550Hz) y temperatura (>35°C) compatible con salida inminente de enjambre.',
-        condicion: (l: any, p: any) =>
-            p &&
-            Number(l.sonido_hz) >= CONFIG_AUDIO.BAND_PIPING_MIN &&
-            Number(l.sonido_hz) <= CONFIG_AUDIO.BAND_PIPING_MAX &&
-            Number(p.sonido_hz) < CONFIG_AUDIO.BAND_NORMAL_MAX &&
-            Number(l.temperatura_c) > 35,
+        descripcion: 'Vigor Excedente: Salto acústico (400-550Hz) y T° > 36°C mantenido, compatible con salida de enjambre.',
+        condicion: (l: any, p: any) => {
+            if (!p) return false;
+            // Exigimos temperatura un poco más alta y que el anterior sea normal
+            const esSaltoAcustico = Number(l.sonido_hz) >= 350 && Number(l.sonido_hz) <= 550 && Number(p.sonido_hz) < 300;
+            const esCalorEnjambre = Number(l.temperatura_c) >= 36.0;
+
+            return esSaltoAcustico && esCalorEnjambre;
+        },
         prioridad: 'critica' as const,
         color: '#FFA500'
     },
@@ -218,15 +219,20 @@ const REGLAS_ACUSTICAS = [
     {
         codigo: 'ATAQUE_O_ESTRES',
         nombre: 'Estrés Defensivo o Ataque Externo',
-        descripcion: 'Respuesta de "siseo" (Hissing) detectada por picos fuera de rango normal (>600Hz) de forma persistente.',
+        descripcion: 'Respuesta de siseo detectada (>600Hz) confirmada en 3 lecturas seguidas.',
         condicion: (l: any, p: any, history: any[]) => {
-            if (!history || history.length < (TEMPORALIDAD.PERSISTENCIA_ATAQUE - 1)) return false;
+            const minPersistencia = TEMPORALIDAD.PERSISTENCIA_ATAQUE;
+            if (!history || history.length < (minPersistencia - 1)) return false;
 
             const esHiss = (hz: number) => hz >= CONFIG_AUDIO.BAND_HISS_MIN;
 
-            // Verificar actual + historial
-            return esHiss(Number(l.sonido_hz)) &&
-                history.slice(0, TEMPORALIDAD.PERSISTENCIA_ATAQUE - 1).every(h => esHiss(Number(h.sonido_hz)));
+            const actualValido = esHiss(Number(l.sonido_hz));
+            if (!actualValido) return false;
+
+            // Debe persistir en las últimas N lecturas (3 en total)
+            return history.slice(0, minPersistencia - 1).every(h =>
+                esHiss(Number(h.sonido_hz))
+            );
         },
         prioridad: 'alta' as const,
         color: '#8B0000'
