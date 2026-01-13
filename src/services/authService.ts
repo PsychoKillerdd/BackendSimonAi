@@ -4,8 +4,16 @@ import { db } from '../config/db';
 import { usuario } from '../config/db/schema';
 import { ilike } from 'drizzle-orm';
 
-const JWT_SECRET = (process.env.JWT_SECRET || 'please-change-me') as string;
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as string;
+const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '8h') as string;
+
+// Validar que JWT_SECRET esté configurado correctamente
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+	console.error('⚠️ SEGURIDAD CRÍTICA: JWT_SECRET no está configurado o es muy corto (mínimo 32 caracteres)');
+	if (process.env.NODE_ENV === 'production') {
+		throw new Error('JWT_SECRET debe estar configurado en producción');
+	}
+}
 
 export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);

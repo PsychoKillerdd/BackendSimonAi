@@ -31,9 +31,31 @@ app.use(helmet({
 // 📦 Compresión de respuestas (Gzip)
 app.use(compression());
 
-// CORS configurado para producción
+// CORS configurado para producción - Lista blanca de dominios
+const allowedOrigins = [
+	'http://localhost:5173',
+	'http://localhost:3000',
+	'https://simoniareactfrontend.pages.dev',
+	process.env.FRONTEND_URL, // Variable de entorno para dominio personalizado
+].filter(Boolean) as string[];
+
 app.use(cors({
-	origin: '*', // En producción, especifica dominios permitidos
+	origin: (origin, callback) => {
+		// Permitir requests sin origin (Postman, curl, apps móviles)
+		if (!origin) return callback(null, true);
+		// Verificar si el origin está en la lista blanca
+		if (allowedOrigins.includes(origin)) {
+			return callback(null, true);
+		}
+		// En desarrollo, ser más permisivo
+		if (process.env.NODE_ENV !== 'production') {
+			return callback(null, true);
+		}
+		return callback(new Error('CORS not allowed'), false);
+	},
+	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 app.use(express.json());
@@ -105,7 +127,7 @@ app.post('/api/test/echo', (req, res) => {
 		}
 	});
 });
-0
+
 // Rutas
 app.use('/api', empresaRouter);
 app.use('/auth', authRouter);

@@ -15,24 +15,36 @@ import {
   type ColmenaInput,
 } from '../services/apiarioService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
+import { isValidUUID, sanitizeString } from '../utils/validation';
 
 export async function createApiarioHandler(req: AuthRequest, res: Response) {
   try {
     const { nombre, limite_colmenas, locacion } = req.body;
 
-    if (!nombre || !locacion) {
+    // Validación mejorada
+    const nombreSanitizado = sanitizeString(nombre);
+    const locacionSanitizada = sanitizeString(locacion);
+
+    if (!nombreSanitizado || nombreSanitizado.length < 2) {
       return res.status(400).json({
         success: false,
-        error: 'Campos requeridos: nombre, locacion',
+        error: 'El nombre del apiario es requerido (mínimo 2 caracteres)',
+      });
+    }
+
+    if (!locacionSanitizada) {
+      return res.status(400).json({
+        success: false,
+        error: 'La locación es requerida',
       });
     }
 
     const id_empresa = req.user!.id_empresa;
 
     const payload: ApiarioInput = {
-      nombre,
-      limite_colmenas,
-      locacion,
+      nombre: nombreSanitizado,
+      limite_colmenas: Math.min(Math.max(1, Number(limite_colmenas) || 100), 1000),
+      locacion: locacionSanitizada,
     };
 
     const result = await createApiarioWithUbicacion(id_empresa, payload);
@@ -73,10 +85,10 @@ export async function getApiarioByIdHandler(req: Request, res: Response) {
   try {
     const { apiarioId } = req.params;
 
-    if (!apiarioId) {
+    if (!apiarioId || !isValidUUID(apiarioId)) {
       return res.status(400).json({
         success: false,
-        error: 'apiarioId es requerido',
+        error: 'apiarioId inválido o no proporcionado',
       });
     }
 

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as inspeccionService from '../services/inspeccionService';
+import { isValidUUID, sanitizeString } from '../utils/validation';
 
 export async function createInspeccionHandler(req: Request, res: Response) {
     try {
@@ -12,7 +13,23 @@ export async function createInspeccionHandler(req: Request, res: Response) {
             });
         }
 
-        const inspeccion = await inspeccionService.createInspeccion(data);
+        // Validación de UUID
+        if (!isValidUUID(data.colmena_id)) {
+            return res.status(400).json({ success: false, error: 'colmena_id debe ser un UUID válido' });
+        }
+
+        // Sanitizar campos de texto
+        const sanitizedData = {
+            ...data,
+            nombre_inspeccion: sanitizeString(data.nombre_inspeccion, 200),
+            ubicacion_apiario: data.ubicacion_apiario ? sanitizeString(data.ubicacion_apiario, 200) : undefined,
+            signos_enfermedad: data.signos_enfermedad ? sanitizeString(data.signos_enfermedad, 500) : undefined,
+            observaciones: data.observaciones ? sanitizeString(data.observaciones, 1000) : undefined,
+            recomendaciones: data.recomendaciones ? sanitizeString(data.recomendaciones, 1000) : undefined,
+            acciones_correctivas: data.acciones_correctivas ? sanitizeString(data.acciones_correctivas, 1000) : undefined,
+        };
+
+        const inspeccion = await inspeccionService.createInspeccion(sanitizedData);
 
         res.status(201).json({
             success: true,
@@ -30,8 +47,8 @@ export async function createInspeccionHandler(req: Request, res: Response) {
 export async function getInspeccionesByColmenaHandler(req: Request, res: Response) {
     try {
         const { colmenaId } = req.params;
-        if (!colmenaId) {
-            return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+        if (!colmenaId || !isValidUUID(colmenaId)) {
+            return res.status(400).json({ success: false, error: 'colmenaId requerido y debe ser un UUID válido' });
         }
 
         const inspecciones = await inspeccionService.getInspeccionesByColmena(colmenaId as string);
@@ -51,8 +68,8 @@ export async function getInspeccionesByColmenaHandler(req: Request, res: Respons
 export async function getInspeccionByIdHandler(req: Request, res: Response) {
     try {
         const { id } = req.params;
-        if (!id) {
-            return res.status(400).json({ success: false, error: 'id requerido' });
+        if (!id || !isValidUUID(id)) {
+            return res.status(400).json({ success: false, error: 'id requerido y debe ser un UUID válido' });
         }
         const inspeccion = await inspeccionService.getInspeccionById(id as string);
 
@@ -75,8 +92,8 @@ export async function getInspeccionByIdHandler(req: Request, res: Response) {
 export async function getBitacoraByColmenaHandler(req: Request, res: Response) {
     try {
         const { colmenaId } = req.params;
-        if (!colmenaId) {
-            return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+        if (!colmenaId || !isValidUUID(colmenaId)) {
+            return res.status(400).json({ success: false, error: 'colmenaId requerido y debe ser un UUID válido' });
         }
 
         const bitacora = await inspeccionService.getBitacoraByColmena(colmenaId as string);

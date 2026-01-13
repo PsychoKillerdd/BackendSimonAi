@@ -12,15 +12,29 @@ import {
   type DispositivoInput,
 } from '../services/dispositivoService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
+import { isValidUUID, sanitizeString } from '../utils/validation';
+
+// Estados válidos para dispositivos
+const ESTADOS_VALIDOS = ['activo', 'inactivo', 'mantenimiento', 'disponible', 'asignado'];
 
 export async function createDispositivoHandler(req: Request, res: Response) {
   try {
     const { codigo_unico, modelo, firmware_version, estado } = req.body;
 
-    if (!codigo_unico) {
+    // Validación mejorada
+    const codigoSanitizado = sanitizeString(codigo_unico);
+    if (!codigoSanitizado || codigoSanitizado.length < 3) {
       return res.status(400).json({
         success: false,
-        error: 'Campo requerido: codigo_unico',
+        error: 'Campo requerido: codigo_unico (mínimo 3 caracteres)',
+      });
+    }
+
+    // Validar estado si se proporciona
+    if (estado && !ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        error: `Estado inválido. Valores permitidos: ${ESTADOS_VALIDOS.join(', ')}`,
       });
     }
 
@@ -174,10 +188,17 @@ export async function updateDispositivoEstadoHandler(req: Request, res: Response
     const { dispositivoId } = req.params;
     const { estado } = req.body;
 
-    if (!dispositivoId || !estado) {
+    if (!dispositivoId || !isValidUUID(dispositivoId)) {
       return res.status(400).json({
         success: false,
-        error: 'Campos requeridos: dispositivoId, estado',
+        error: 'dispositivoId inválido o no proporcionado',
+      });
+    }
+
+    if (!estado || !ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        error: `Estado requerido. Valores permitidos: ${ESTADOS_VALIDOS.join(', ')}`,
       });
     }
 
@@ -201,10 +222,17 @@ export async function asignarDispositivoHandler(req: Request, res: Response) {
     const { dispositivoId } = req.params;
     const { id_empresa } = req.body;
 
-    if (!dispositivoId || !id_empresa) {
+    if (!dispositivoId || !isValidUUID(dispositivoId)) {
       return res.status(400).json({
         success: false,
-        error: 'Campos requeridos: dispositivoId (params), id_empresa (body)',
+        error: 'dispositivoId inválido',
+      });
+    }
+
+    if (!id_empresa || !isValidUUID(id_empresa)) {
+      return res.status(400).json({
+        success: false,
+        error: 'id_empresa inválido o no proporcionado',
       });
     }
 

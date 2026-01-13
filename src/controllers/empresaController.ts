@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware';
 import { createEmpresa, getAllEmpresas, getEmpresaById, getEmpresasPaginated, createUsuarioWithRole, deleteEmpresa, getUsuariosByEmpresa, deleteUsuario, updateUsuario } from '../services/empresaService';
+import { isValidUUID, sanitizeString, isValidEmail } from '../utils/validation';
 
 export async function createEmpresaHandler(req: Request, res: Response) {
   try {
@@ -10,12 +11,17 @@ export async function createEmpresaHandler(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'El campo "nombre" es obligatorio y debe ser texto.' });
     }
 
+    // Validar correo si se proporciona
+    if (correo_contacto && !isValidEmail(correo_contacto)) {
+      return res.status(400).json({ success: false, message: 'El correo de contacto no es válido.' });
+    }
+
     const payload = {
-      nombre: nombre.trim(),
-      pais,
-      direccion,
+      nombre: sanitizeString(nombre, 200),
+      pais: pais ? sanitizeString(pais, 100) : undefined,
+      direccion: direccion ? sanitizeString(direccion, 300) : undefined,
       telefono: telefono ? Number(telefono) : undefined,
-      correo_contacto,
+      correo_contacto: correo_contacto ? sanitizeString(correo_contacto, 200) : undefined,
     };
 
     const empresa = await createEmpresa(payload);
@@ -55,8 +61,8 @@ export async function getEmpresaByIdHandler(req: Request, res: Response) {
   try {
     const empresaId = req.params.empresaId;
 
-    if (!empresaId || empresaId.length < 10) {
-      return res.status(400).json({ success: false, message: 'empresaId inválido' });
+    if (!empresaId || !isValidUUID(empresaId)) {
+      return res.status(400).json({ success: false, message: 'empresaId debe ser un UUID válido' });
     }
 
     const empresa = await getEmpresaById(empresaId);
@@ -75,7 +81,9 @@ export async function getEmpresaByIdHandler(req: Request, res: Response) {
 export async function createAdminHandler(req: Request, res: Response) {
   try {
     const empresaId = req.params.empresaId;
-    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
+    if (!empresaId || !isValidUUID(empresaId)) {
+      return res.status(400).json({ success: false, message: 'empresaId debe ser un UUID válido' });
+    }
 
     // obtener empresa para obtener correo de contacto si no se provee
     const empresaData = await getEmpresaById(empresaId);
@@ -86,12 +94,17 @@ export async function createAdminHandler(req: Request, res: Response) {
 
     if (!correo) return res.status(400).json({ success: false, message: 'correo no proporcionado y empresa no tiene correo_contacto' });
 
+    // Validar correo
+    if (!isValidEmail(correo)) {
+      return res.status(400).json({ success: false, message: 'El correo no es válido' });
+    }
+
     const payload = {
-      nombre,
-      correo,
+      nombre: sanitizeString(nombre, 100),
+      correo: sanitizeString(correo, 200),
       tipo_usuario: 'admin',
       roleName: 'admin',
-      foto_url: body.foto_url
+      foto_url: body.foto_url ? sanitizeString(body.foto_url, 500) : undefined
     };
 
     const result = await createUsuarioWithRole(empresaId, payload as any);
@@ -105,7 +118,9 @@ export async function createAdminHandler(req: Request, res: Response) {
 export async function createUsuarioHandler(req: AuthRequest, res: Response) {
   try {
     const empresaId = req.params.empresaId;
-    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
+    if (!empresaId || !isValidUUID(empresaId)) {
+      return res.status(400).json({ success: false, message: 'empresaId debe ser un UUID válido' });
+    }
 
     // Permisos: Solo administradores pueden crear usuarios
     if (!req.user || (req.user.tipo_usuario !== 'admin')) {
@@ -117,12 +132,25 @@ export async function createUsuarioHandler(req: AuthRequest, res: Response) {
       return res.status(400).json({ success: false, message: 'nombre, correo y tipo_usuario son obligatorios' });
     }
 
+    // Validar correo
+    if (!isValidEmail(payload.correo)) {
+      return res.status(400).json({ success: false, message: 'El correo no es válido' });
+    }
+
+    // Sanitizar datos
+    const sanitizedPayload = {
+      ...payload,
+      nombre: sanitizeString(payload.nombre, 100),
+      correo: sanitizeString(payload.correo, 200),
+      foto_url: payload.foto_url ? sanitizeString(payload.foto_url, 500) : undefined
+    };
+
     // Role creation hierarchy:
     // admin can create anyone.
     // apicultor/etc shouldn't even reach here due to the check above,
     // but we ensure it just in case.
 
-    const result = await createUsuarioWithRole(empresaId, payload);
+    const result = await createUsuarioWithRole(empresaId, sanitizedPayload);
     return res.status(201).json({ success: true, data: result });
   } catch (error: any) {
     console.error('Error al crear usuario:', error);
@@ -155,8 +183,8 @@ export async function deleteEmpresaHandler(req: Request, res: Response) {
   try {
     const empresaId = req.params.empresaId;
 
-    if (!empresaId || empresaId.length < 10) {
-      return res.status(400).json({ success: false, message: 'empresaId inválido' });
+    if (!empresaId || !isValidUUID(empresaId)) {
+      return res.status(400).json({ success: false, message: 'empresaId debe ser un UUID válido' });
     }
 
     // Verificar que la empresa existe antes de eliminar
@@ -189,7 +217,9 @@ export async function deleteEmpresaHandler(req: Request, res: Response) {
 export async function getUsuariosByEmpresaHandler(req: AuthRequest, res: Response) {
   try {
     const empresaId = req.params.empresaId;
-    if (!empresaId) return res.status(400).json({ success: false, message: 'empresaId inválido' });
+    if (!empresaId || !isValidUUID(empresaId)) {
+      return res.status(400).json({ success: false, message: 'empresaId debe ser un UUID válido' });
+    }
 
     // Verificar que el usuario pertenece a la empresa que intenta consultar
     if (req.user?.id_empresa !== empresaId) {
@@ -207,7 +237,9 @@ export async function getUsuariosByEmpresaHandler(req: AuthRequest, res: Respons
 export async function deleteUsuarioHandler(req: AuthRequest, res: Response) {
   try {
     const usuarioId = req.params.usuarioId;
-    if (!usuarioId) return res.status(400).json({ success: false, message: 'usuarioId inválido' });
+    if (!usuarioId || !isValidUUID(usuarioId)) {
+      return res.status(400).json({ success: false, message: 'usuarioId debe ser un UUID válido' });
+    }
 
     // Permisos: Solo administradores pueden eliminar usuarios
     if (!req.user || (req.user.tipo_usuario !== 'admin')) {
@@ -230,7 +262,9 @@ export async function deleteUsuarioHandler(req: AuthRequest, res: Response) {
 export async function updateUsuarioHandler(req: AuthRequest, res: Response) {
   try {
     const usuarioId = req.params.usuarioId;
-    if (!usuarioId) return res.status(400).json({ success: false, message: 'usuarioId inválido' });
+    if (!usuarioId || !isValidUUID(usuarioId)) {
+      return res.status(400).json({ success: false, message: 'usuarioId debe ser un UUID válido' });
+    }
 
     // Permisos: Solo administradores pueden actualizar a otros, 
     // o el mismo usuario puede actualizar su perfil básico.
@@ -250,7 +284,20 @@ export async function updateUsuarioHandler(req: AuthRequest, res: Response) {
       delete payload.roleName;
     }
 
-    const result = await updateUsuario(usuarioId, payload);
+    // Sanitizar campos de texto
+    const sanitizedPayload = {
+      ...payload,
+      nombre: payload.nombre ? sanitizeString(payload.nombre, 100) : undefined,
+      correo: payload.correo ? sanitizeString(payload.correo, 200) : undefined,
+      foto_url: payload.foto_url ? sanitizeString(payload.foto_url, 500) : undefined
+    };
+
+    // Validar correo si se proporciona
+    if (sanitizedPayload.correo && !isValidEmail(sanitizedPayload.correo)) {
+      return res.status(400).json({ success: false, message: 'El correo no es válido' });
+    }
+
+    const result = await updateUsuario(usuarioId, sanitizedPayload);
     return res.status(200).json({ success: true, data: result });
   } catch (error: any) {
     console.error('Error al actualizar usuario:', error);

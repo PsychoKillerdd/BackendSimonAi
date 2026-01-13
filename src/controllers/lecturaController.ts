@@ -10,6 +10,7 @@ import {
 } from '../services/lecturaService';
 import { checkAndCreateAlerts } from '../services/alertaService';
 import type { AuthRequest } from '../middlewares/authMiddleware';
+import { validateLecturaInput, isValidUUID } from '../utils/validation';
 
 // Ingesta desde dispositivo (no requiere auth humano, usa codigo_unico)
 export async function createLecturaSensorHandler(req: Request, res: Response) {
@@ -23,10 +24,21 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
       presion_hpa,
     } = req.body;
 
-    if (!codigo_dispositivo) {
+    // Validación mejorada de inputs
+    const validation = validateLecturaInput({
+      codigo_dispositivo,
+      temperatura_c,
+      humedad_h,
+      peso_kg,
+      sonido_hz,
+      presion_hpa,
+    });
+
+    if (!validation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'Campo requerido: codigo_dispositivo'
+        error: 'Datos de sensor inválidos',
+        details: validation.errors
       });
     }
 
@@ -79,11 +91,12 @@ export async function getLecturasByColmenaHandler(req: AuthRequest, res: Respons
     const { colmenaId } = req.params;
     const { limit } = req.query;
 
-    if (!colmenaId) {
-      return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    if (!colmenaId || !isValidUUID(colmenaId)) {
+      return res.status(400).json({ success: false, error: 'colmenaId inválido o no proporcionado' });
     }
 
-    const { nombre_colmena, lecturas } = await getLecturasByColmena(colmenaId, Number(limit) || 50);
+    const parsedLimit = Math.min(Math.max(1, Number(limit) || 50), 500);
+    const { nombre_colmena, lecturas } = await getLecturasByColmena(colmenaId, parsedLimit);
     res.status(200).json({ success: true, nombre_colmena, data: lecturas });
   } catch (error: any) {
     console.error('Error obteniendo lecturas por colmena:', error);

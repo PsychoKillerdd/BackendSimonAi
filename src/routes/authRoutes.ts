@@ -1,6 +1,7 @@
 import express from 'express';
 import { loginHandler, registerHandler, getProfileHandler } from '../controllers/authController';
 import { authenticateToken } from '../middlewares/authMiddleware';
+import { authRateLimiter } from '../middlewares/rateLimiter';
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ const router = express.Router();
  *       401:
  *         description: Credenciales inválidas
  */
-router.post('/login', loginHandler);
+router.post('/login', authRateLimiter, loginHandler);
 
 /**
  * @swagger

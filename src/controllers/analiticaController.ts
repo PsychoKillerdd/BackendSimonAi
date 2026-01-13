@@ -1,13 +1,14 @@
 import type { Request, Response } from 'express';
 import { getUltimaLecturaByColmena, getLecturasByColmena, getUltimaLecturaValidaByColmena } from '../services/lecturaService';
 import { calcularIndiceVitalidad, determinarZonaConfort, calcularNivelHomeostasis, generarRecomendacionesExpertas } from '../services/analiticaService';
+import { isValidUUID } from '../utils/validation';
 
 export async function getDashboardOperativoHandler(req: Request, res: Response) {
     try {
         const { colmenaId } = req.params;
 
-        if (!colmenaId) {
-            return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+        if (!colmenaId || !isValidUUID(colmenaId)) {
+            return res.status(400).json({ success: false, error: 'colmenaId requerido y debe ser un UUID válido' });
         }
 
         // Obtener datos necesarios en paralelo para mejorar el rendimiento

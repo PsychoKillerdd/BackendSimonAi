@@ -8,6 +8,7 @@ import {
   getEstadisticasColmenaHandler,
 } from '../controllers/lecturaController';
 import { authenticateToken } from '../middlewares/authMiddleware';
+import { iotRateLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
@@ -94,7 +95,7 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
  *       201:
  *         description: Lectura registrada
  */
-router.post('/lecturas/sensor', createLecturaSensorHandler);
+router.post('/lecturas/sensor', iotRateLimiter, createLecturaSensorHandler);
 
 /**
  * @swagger

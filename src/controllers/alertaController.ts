@@ -10,6 +10,7 @@ import {
   getResumenAlertasByEmpresa,
   getAlertasByFecha,
 } from '../services/alertaQueryService';
+import { isValidUUID, sanitizeString } from '../utils/validation';
 
 // 🎯 SOLO MOSTRAR ESTAS 3 ALERTAS (las demás están desactivadas)
 const CODIGOS_ALERTAS_PERMITIDAS = [
@@ -32,11 +33,12 @@ export async function getAlertasColmenaHandler(req: AuthRequest, res: Response) 
     const { colmenaId } = req.params;
     const { limit } = req.query;
 
-    if (!colmenaId) {
-      return res.status(400).json({ success: false, error: 'colmenaId requerido' });
+    if (!colmenaId || !isValidUUID(colmenaId)) {
+      return res.status(400).json({ success: false, error: 'colmenaId inválido o no proporcionado' });
     }
 
-    const alertasRaw = await getAlertasByColmena(colmenaId, Number(limit) || 50);
+    const parsedLimit = Math.min(Math.max(1, Number(limit) || 50), 500);
+    const alertasRaw = await getAlertasByColmena(colmenaId, parsedLimit);
     const alertas = filtrarAlertasPermitidas(alertasRaw);
 
     res.status(200).json({
@@ -157,11 +159,14 @@ export async function marcarAlertaAtendidaHandler(req: AuthRequest, res: Respons
     const { comentario } = req.body;
     const usuarioId = req.user!.id;
 
-    if (!alertaId) {
-      return res.status(400).json({ success: false, error: 'alertaId requerido' });
+    if (!alertaId || !isValidUUID(alertaId)) {
+      return res.status(400).json({ success: false, error: 'alertaId inválido o no proporcionado' });
     }
 
-    const alertaActualizada = await marcarAlertaAtendida(alertaId, usuarioId, comentario);
+    // Sanitizar comentario si existe
+    const comentarioSanitizado = comentario ? sanitizeString(comentario) : undefined;
+
+    const alertaActualizada = await marcarAlertaAtendida(alertaId, usuarioId, comentarioSanitizado);
 
     if (!alertaActualizada) {
       return res.status(404).json({ success: false, error: 'Alerta no encontrada' });
