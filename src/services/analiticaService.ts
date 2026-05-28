@@ -2,7 +2,7 @@ import { lectura_sensor } from '../config/db/schema';
 
 export interface VigorStatus {
     indice_vitalidad: number; // 0 - 100
-    estado_acustico: 'Tranquila' | 'Activa' | 'Estresada' | 'Posible Orfandad/Enjambrazón';
+    estado_acustico: 'Tranquila' | 'Activa' | 'Estresada' | 'Estado de Alerta, Ten cuidado';
     homeostasis: 'Alta' | 'Media' | 'Nula';
     confort_higrotermico: 'Zona Confort' | 'Zona Estrés' | 'Zona Peligro';
     etiquetas_riesgo: string[];
@@ -43,8 +43,8 @@ export function calcularIndiceVitalidad(sonido_hz: number, temp_int: number): { 
     } else if (hz > 400 || hz < 180) {
         // Estado Crítico
         score = Math.min(60, 50 + (hz / 10));
-        estado = 'Posible Orfandad/Enjambrazón';
-        color = 'bg-red-500 text-white';
+        estado = 'Estado de Alerta, Ten cuidado';
+        color = 'bg-red-400 text-white';
         label = 'Crítico';
     }
 
